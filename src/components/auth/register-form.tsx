@@ -30,14 +30,21 @@ export function RegisterForm() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Error al registrar usuario');
+        throw new Error(data.error || 'Error al registrar usuario');
       }
 
       toast.success('¡Registro exitoso!');
       router.push('/auth/login');
     } catch (error) {
-      toast.error('Ocurrió un error al registrar el usuario');
+      console.error('Registration error:', error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Ocurrió un error al registrar el usuario');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -88,9 +95,13 @@ export function RegisterForm() {
             type="password"
             autoComplete="new-password"
             required
+            minLength={6}
             className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-accent-500 sm:text-sm"
           />
         </div>
+        <p className="mt-1 text-sm text-gray-500">
+          La contraseña debe tener al menos 6 caracteres
+        </p>
       </div>
 
       <div>

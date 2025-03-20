@@ -3,12 +3,12 @@ import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 const registerSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  name: z.string().min(1, 'El nombre es requerido'),
+  email: z.string().email('El correo electrónico no es válido'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 });
 
 export async function POST(req: Request) {
@@ -22,26 +22,35 @@ export async function POST(req: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User already exists' },
+        { error: 'Ya existe una cuenta con este correo electrónico' },
         { status: 400 }
       );
     }
 
-    const hashedPassword = await bcryptjs.hash(password, 10);
+    try {
+      const hashedPassword = await bcryptjs.hash(password, 10);
 
-    const user = await db.user.create({
-      data: {
-        name,
-        email,
-        hashedPassword,
-      },
-    });
+      const user = await db.user.create({
+        data: {
+          name,
+          email,
+          hashedPassword,
+        },
+      });
 
-    return NextResponse.json(
-      { message: 'User created successfully' },
-      { status: 201 }
-    );
+      return NextResponse.json(
+        { message: 'Usuario creado exitosamente' },
+        { status: 201 }
+      );
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return NextResponse.json(
+        { error: 'Error al crear el usuario en la base de datos' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
+    console.error('Registration error:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: error.errors[0].message },
@@ -50,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { error: 'Something went wrong' },
+      { error: 'Ocurrió un error al procesar la solicitud' },
       { status: 500 }
     );
   }
