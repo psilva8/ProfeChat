@@ -1,32 +1,42 @@
 'use client';
 
 import React, { useState } from 'react';
-import { signIn } from '@/lib/auth';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 export function LoginForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
+    setError('');
 
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
     try {
-      await signIn('credentials', {
+      const result = await signIn('credentials', {
         email,
         password,
-        redirectTo: '/dashboard',
+        redirect: false,
       });
 
-      router.refresh();
+      if (result?.error) {
+        setError(result.error);
+        toast.error(result.error);
+      } else {
+        toast.success('¡Inicio de sesión exitoso!');
+        router.push('/dashboard');
+        router.refresh();
+      }
     } catch (error) {
-      toast.error('An error occurred while logging in');
+      console.error('Login error:', error);
+      toast.error('Ocurrió un error al iniciar sesión');
     } finally {
       setIsLoading(false);
     }
@@ -34,6 +44,11 @@ export function LoginForm() {
 
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Email
@@ -72,7 +87,7 @@ export function LoginForm() {
           disabled={isLoading}
           className="flex w-full justify-center rounded-md border border-transparent bg-accent-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Signing in...' : 'Sign in'}
+          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
         </button>
       </div>
     </form>

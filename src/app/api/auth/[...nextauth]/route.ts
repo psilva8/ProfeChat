@@ -1,7 +1,6 @@
 import { auth } from "@/lib/auth";
 
-// Use NextAuth handler directly
+// Export NextAuth v5 handler function
 const handler = auth;
 
-// Export as route handlers
 export { handler as GET, handler as POST }; 
