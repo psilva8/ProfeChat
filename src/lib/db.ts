@@ -13,16 +13,20 @@ async function initializePrisma(): Promise<PrismaClient> {
   
   while (retries < MAX_RETRIES) {
     try {
+      console.log('Attempting to initialize Prisma client...');
+      
       const prisma = new PrismaClient({
-        log: ['error', 'warn', 'info'],
+        log: ['error', 'warn', 'info', 'query'],
         errorFormat: 'pretty',
       });
 
       // Test the connection
+      console.log('Testing database connection...');
       await prisma.$connect();
-      console.log('Database connection established');
+      console.log('Database connection established successfully');
 
       // Test query to ensure database is accessible
+      console.log('Testing database query...');
       await prisma.user.findFirst();
       console.log('Database query test successful');
 
@@ -30,60 +34,47 @@ async function initializePrisma(): Promise<PrismaClient> {
     } catch (error) {
       lastError = error as Error;
       retries++;
-      console.error(`Database connection attempt ${retries} failed:`, {
-        error: lastError.message,
-        stack: lastError.stack,
-      });
+      console.error(`Database connection attempt ${retries} failed:`, error);
       
-      if (retries === MAX_RETRIES) {
-        console.error('Max retries reached. Could not connect to database.');
-        throw new Error(`Database initialization failed after ${MAX_RETRIES} attempts: ${lastError.message}`);
+      if (retries < MAX_RETRIES) {
+        console.log(`Retrying in ${RETRY_DELAY}ms...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
       }
-
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retries)); // Exponential backoff
     }
   }
 
-  throw new Error('Failed to initialize database after max retries');
+  console.error('Failed to initialize database after maximum retries');
+  throw lastError || new Error('Failed to initialize database');
 }
 
 let db: PrismaClient;
 
 if (process.env.NODE_ENV === 'production') {
-  db = new PrismaClient({
-    log: ['error', 'warn'],
-    errorFormat: 'pretty',
-  });
+  db = new PrismaClient();
 } else {
-  if (!global.prisma) {
-    global.prisma = new PrismaClient({
-      log: ['error', 'warn', 'info', 'query'],
-      errorFormat: 'pretty',
-    });
+  if (!globalThis.prisma) {
+    globalThis.prisma = new PrismaClient();
   }
-  db = global.prisma;
+  db = globalThis.prisma;
 }
 
-// Initialize connection
-try {
-  initializePrisma()
-    .then(client => {
-      if (process.env.NODE_ENV === 'production') {
-        db = client;
-      } else {
-        global.prisma = client;
-        db = global.prisma;
-      }
-      console.log('Database initialized successfully');
-    })
-    .catch(error => {
-      console.error('Failed to initialize database:', error);
-      process.exit(1); // Exit if we can't connect to the database
-    });
-} catch (error) {
-  console.error('Critical database initialization error:', error);
-  process.exit(1);
-}
+// Initialize the database connection
+initializePrisma()
+  .then(client => {
+    if (process.env.NODE_ENV === 'production') {
+      db = client;
+    } else {
+      globalThis.prisma = client;
+      db = globalThis.prisma;
+    }
+    console.log('Database initialized successfully');
+  })
+  .catch(error => {
+    console.error('Failed to initialize database:', error);
+    // In production, we might want to exit the process
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    }
+  });
 
 export { db }; 
