@@ -4,32 +4,26 @@ import { openai } from '@/lib/openai';
 import { db } from '@/lib/db';
 
 export const runtime = 'edge';
-
-interface ActivityResponse {
-  activity: {
-    description: string;
-    steps: Array<{
-      order: number;
-      description: string;
-    }>;
-    adaptations: string[];
-    evaluationCriteria: string[];
-    variations: string[];
-  }
-}
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
     const { title, grade, subject, type, duration, objectives, materials } = body;
 
     if (!title || !grade || !subject || !type || !duration || !objectives || !materials) {
-      return new NextResponse('Missing required fields', { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
     const prompt = `Por favor, genera una actividad educativa detallada con las siguientes características:
@@ -75,31 +69,24 @@ Formato de respuesta:
 }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: 'gpt-3.5-turbo',
       messages: [
         {
-          role: "system",
-          content: "Eres un experto en educación especializado en la creación de actividades educativas. Tus respuestas deben ser claras, específicas y adecuadas para el nivel educativo indicado."
+          role: 'system',
+          content: 'You are a helpful assistant that generates educational activities.'
         },
         {
-          role: "user",
+          role: 'user',
           content: prompt
         }
-      ],
-      response_format: { type: "json_object" }
+      ]
     });
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error('No content received from OpenAI');
-    }
-
-    let generatedContent: ActivityResponse;
-    try {
-      generatedContent = JSON.parse(content);
-    } catch (error) {
-      console.error('[JSON_PARSE_ERROR]', error);
-      return new NextResponse('Invalid response format', { status: 500 });
+    if (!response.choices[0].message?.content) {
+      return NextResponse.json(
+        { error: 'Failed to generate activity' },
+        { status: 500 }
+      );
     }
 
     // Save the activity to the database
@@ -112,14 +99,17 @@ Formato de respuesta:
         type,
         duration,
         objectives,
-        content,
+        content: response.choices[0].message.content || '',
         materials: JSON.stringify(materials),
       },
     });
 
     return NextResponse.json(activity);
   } catch (error) {
-    console.error('[ACTIVITY_GENERATION_ERROR]', error);
-    return new NextResponse('Internal Error', { status: 500 });
+    console.error('Error generating activity:', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 } 
