@@ -177,4 +177,3 @@ export function RegisterForm() {
     </form>
   );
 } 
-} 
