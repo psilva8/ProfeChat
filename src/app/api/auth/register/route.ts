@@ -56,6 +56,10 @@ export async function POST(req: Request) {
     const { name, email, password } = validatedData;
 
     try {
+      // Test database connection
+      await db.$connect();
+      console.log('Database connection successful');
+
       const existingUser = await db.user.findUnique({
         where: { email },
       });
@@ -85,7 +89,14 @@ export async function POST(req: Request) {
         { status: 201 }
       );
     } catch (dbError) {
-      console.error('Database error:', dbError);
+      const error = dbError as Error;
+      console.error('Database error details:', {
+        name: error.name,
+        message: error.message,
+        code: dbError instanceof Prisma.PrismaClientKnownRequestError ? dbError.code : 'N/A',
+        meta: dbError instanceof Prisma.PrismaClientKnownRequestError ? dbError.meta : 'N/A'
+      });
+
       // Check if it's a unique constraint violation
       if (
         dbError instanceof Prisma.PrismaClientKnownRequestError &&
@@ -96,15 +107,28 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
+
+      // Check for connection errors
+      if (dbError instanceof Prisma.PrismaClientInitializationError) {
+        console.error('Database initialization error:', dbError);
+        return NextResponse.json(
+          { error: 'Error de conexión con la base de datos' },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'Error al crear el usuario en la base de datos' },
+        { error: 'Error al crear el usuario en la base de datos', details: error.message },
         { status: 500 }
       );
+    } finally {
+      await db.$disconnect();
     }
   } catch (error) {
-    console.error('Unexpected error during registration:', error);
+    const err = error as Error;
+    console.error('Unexpected error during registration:', err);
     return NextResponse.json(
-      { error: 'Ocurrió un error inesperado al procesar la solicitud' },
+      { error: 'Ocurrió un error inesperado al procesar la solicitud', details: err.message },
       { status: 500 }
     );
   }
