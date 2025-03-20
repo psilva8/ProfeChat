@@ -59,8 +59,8 @@ const faqs = [
     answer: 'Actualmente cubrimos todos los grados de educación primaria (1° a 6° grado).',
   },
   {
-    question: '¿Necesito una cuenta para usar ProfeChat?',
-    answer: 'No, ProfeChat es de acceso libre para todos los docentes peruanos.',
+    question: '¿Qué herramientas ofrece ProfeChat?',
+    answer: 'ProfeChat ofrece un conjunto completo de herramientas incluyendo planificador de lecciones, generador de actividades, creador de rúbricas y más, todo diseñado específicamente para docentes peruanos.',
   },
 ];
 
@@ -84,16 +84,16 @@ export default function Home() {
               </p>
               <div className="mt-10 flex justify-center gap-x-6">
                 <Link
-                  href="/dashboard"
+                  href="#features"
                   className="rounded-md bg-white px-8 py-3 text-base font-medium text-indigo-600 hover:bg-indigo-50 md:py-4 md:px-10"
                 >
-                  Comenzar
+                  Explorar Herramientas
                 </Link>
                 <Link
-                  href="#features"
+                  href="/pricing"
                   className="rounded-md bg-indigo-500 bg-opacity-20 px-8 py-3 text-base font-medium text-white hover:bg-opacity-30 md:py-4 md:px-10"
                 >
-                  Conoce más
+                  Ver Precios
                 </Link>
               </div>
             </div>
