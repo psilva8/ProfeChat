@@ -3,6 +3,21 @@ import { auth } from '@/lib/auth';
 import { openai } from '@/lib/openai';
 import { db } from '@/lib/db';
 
+export const runtime = 'edge';
+
+interface ActivityResponse {
+  activity: {
+    description: string;
+    steps: Array<{
+      order: number;
+      description: string;
+    }>;
+    adaptations: string[];
+    evaluationCriteria: string[];
+    variations: string[];
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -74,7 +89,18 @@ Formato de respuesta:
       response_format: { type: "json_object" }
     });
 
-    const generatedContent = JSON.parse(response.choices[0].message.content || '{}');
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content received from OpenAI');
+    }
+
+    let generatedContent: ActivityResponse;
+    try {
+      generatedContent = JSON.parse(content);
+    } catch (error) {
+      console.error('[JSON_PARSE_ERROR]', error);
+      return new NextResponse('Invalid response format', { status: 500 });
+    }
 
     // Save the activity to the database
     const activity = await db.activity.create({
@@ -86,7 +112,7 @@ Formato de respuesta:
         type,
         duration,
         objectives,
-        content: response.choices[0].message.content || '',
+        content,
         materials: JSON.stringify(materials),
       },
     });
