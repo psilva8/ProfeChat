@@ -56,7 +56,7 @@ export default function RootLayout({
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <Link href="/signup" className="bg-white text-indigo-600 hover:bg-gray-100 px-4 py-2 rounded-md text-sm font-medium">
+                  <Link href="/auth/register" className="bg-white text-indigo-600 hover:bg-gray-100 px-4 py-2 rounded-md text-sm font-medium">
                     Empezar
                   </Link>
                 </div>
