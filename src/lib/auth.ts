@@ -3,6 +3,7 @@ import NextAuth, { type DefaultSession } from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 
 declare module "next-auth" {
@@ -14,6 +15,7 @@ declare module "next-auth" {
 }
 
 export const config = {
+  adapter: PrismaAdapter(db),
   providers: [
     Credentials({
       name: "credentials",
