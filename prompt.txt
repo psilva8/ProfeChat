@@ -1,0 +1,65 @@
+build a site with the funcions of https://chatlpo.com/ on next.js 14.23.1 with the next features:
+
+
+
+"Build an AI-powered platform for teachers with user authentication and subscription plans").
+
+Install Required Packages:
+
+Install NextAuth.js for authentication.
+
+Install Mongoose for MongoDB integration.
+
+Set up OpenAI API for AI content generation.
+
+Develop Core Features:
+
+Build features for lesson planning, rubric generation, and curriculum-aligned activities.
+
+Ensure alignment with the peruvian national curriculum.
+
+Integrate Subscription Management:
+
+Use Stripe for handling subscription plans (Pro, Teams, Enterprise).
+
+Implement payment gateway logic.
+
+Test and Deploy:
+
+Test the application thoroughly.
+
+Deploy on platforms like Vercel or Netlify.
+
+Additional Considerations:
+
+Ensure compliance with data privacy laws (e.g., GDPR).
+
+Support Spanish language for Chilean users.
+
+Continuously update AI prompts and features based on user feedback.
+
+Key Tools:
+Front-end: Next.js
+
+Back-end: Node.js with Express.js
+
+AI Integration: OpenAI API
+
+Database: MongoDB with Mongoose
+
+Authentication: NextAuth.js
+
+Payment Gateway: Stripe
+
+Core Features:
+Lesson Planning: AI-generated lesson plans aligned with curriculum.
+
+Rubric Generation: Custom rubrics for assessments.
+
+Unit Planning: Curriculum-aligned unit plans.
+
+This streamlined approach ensures a functional, scalable, and curriculum-aligned educational platform.
+
+OPENAI_API_KEY=your_openai_api_key
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
