@@ -10,8 +10,8 @@
     "start-flask": "cd api/python && python3 -m pip install -r requirements.txt && python3 app.py"
   },
   "dependencies": {
-    "@auth/core": "^0.28.0",
-    "@auth/prisma-adapter": "^1.4.0",
+    "@auth/core": "^0.38.0",
+    "@auth/prisma-adapter": "^2.8.0",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.4",

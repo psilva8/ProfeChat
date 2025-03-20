@@ -1,10 +1,9 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
+import { db } from "@/lib/db";
 import type { User } from "@prisma/client";
 
 declare module "next-auth" {
@@ -19,9 +18,8 @@ declare module "next-auth" {
 }
 
 export const config = {
-  adapter: PrismaAdapter(db),
   providers: [
-    CredentialsProvider({
+    Credentials({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
@@ -60,16 +58,22 @@ export const config = {
         };
       }
     }),
-    GoogleProvider({
+    Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
   pages: {
     signIn: '/auth/login',
+    signOut: '/auth/logout',
+    error: '/auth/error',
+    verifyRequest: '/auth/verify-request',
+    newUser: '/auth/register'
   },
   session: {
-    strategy: "jwt"
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -85,10 +89,12 @@ export const config = {
       return session;
     },
   },
+  trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 } satisfies NextAuthConfig;
 
-export const { auth, handlers: { GET, POST }, signIn, signOut } = NextAuth(config);
+export const { auth, signIn, signOut } = NextAuth(config);
 
 export async function getCurrentUser() {
   try {

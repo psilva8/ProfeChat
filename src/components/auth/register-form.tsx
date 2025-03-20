@@ -62,13 +62,25 @@ export function RegisterForm() {
 
       if (!response.ok) {
         if (response.status === 400) {
-          // Validation error
+          // Validation error or user already exists
           setErrors({
-            general: data.error || 'Error de validación',
+            general: data.error || 'Error de validación'
           });
           toast.error(data.error || 'Error de validación');
+        } else if (response.status === 500) {
+          // Server error
+          const errorMessage = data.error || 'Error interno del servidor';
+          const details = data.details ? `: ${data.details}` : '';
+          setErrors({
+            general: `${errorMessage}${details}`
+          });
+          toast.error(errorMessage);
         } else {
-          throw new Error(data.error || 'Error al registrar usuario');
+          // Other errors
+          setErrors({
+            general: data.error || 'Error al registrar usuario'
+          });
+          toast.error(data.error || 'Error al registrar usuario');
         }
         return;
       }
@@ -80,13 +92,18 @@ export function RegisterForm() {
       }, 2000);
     } catch (error) {
       console.error('Registration error:', error);
+      let errorMessage = 'Ocurrió un error al registrar el usuario';
+      
       if (!navigator.onLine) {
-        toast.error('Error de conexión. Por favor, verifica tu conexión a internet.');
+        errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet.';
       } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error('Ocurrió un error al registrar el usuario');
+        errorMessage = error.message;
       }
+      
+      setErrors({
+        general: errorMessage
+      });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
