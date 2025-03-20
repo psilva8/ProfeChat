@@ -4,7 +4,6 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { db } from "@/lib/db";
-import type { User } from "@prisma/client";
 
 declare module "next-auth" {
   interface Session {
@@ -91,7 +90,13 @@ export const config = {
   debug: process.env.NODE_ENV === 'development',
 } satisfies NextAuthConfig;
 
-export const { handlers, auth, signIn, signOut } = NextAuth(config);
+// Initialize NextAuth for App Router
+const { auth: nextAuth, handlers: authHandlers, signIn, signOut } = NextAuth(config);
+
+// Re-export the handlers and auth function
+export const auth = nextAuth;
+export const handlers = authHandlers;
+export { signIn, signOut };
 
 export async function getCurrentUser() {
   try {
