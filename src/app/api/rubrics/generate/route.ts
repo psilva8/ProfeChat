@@ -3,6 +3,22 @@ import { openai } from '@/lib/openai';
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
+interface RubricResponse {
+  rubric: {
+    criteria: Array<{
+      name: string;
+      levels: {
+        destacado: string;
+        satisfactorio: string;
+        enProceso: string;
+        inicial: string;
+      };
+    }>;
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -65,7 +81,18 @@ Formato de respuesta:
       response_format: { type: "json_object" }
     });
 
-    const generatedContent = JSON.parse(response.choices[0].message.content || '{}');
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content received from OpenAI');
+    }
+
+    let generatedContent: RubricResponse;
+    try {
+      generatedContent = JSON.parse(content);
+    } catch (error) {
+      console.error('[JSON_PARSE_ERROR]', error);
+      return new NextResponse('Invalid response format', { status: 500 });
+    }
 
     // Save the rubric to the database
     const rubric = await db.rubric.create({
@@ -75,7 +102,7 @@ Formato de respuesta:
         subject,
         grade,
         criteria: JSON.stringify(criteria),
-        content: response.choices[0].message.content || '',
+        content,
       },
     });
 

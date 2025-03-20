@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { db } from '@/lib/db';
 
+export const runtime = 'edge';
+
 export async function POST(req: Request) {
   try {
     const session = await auth();

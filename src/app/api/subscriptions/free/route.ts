@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 
+export const runtime = 'edge';
+
 export async function POST() {
   try {
     const session = await auth();

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { db } from '@/lib/db';
 
-const prisma = new PrismaClient();
+export const runtime = 'edge';
 
 export async function POST(request: Request) {
   try {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       return new NextResponse('Missing required fields', { status: 400 });
     }
 
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await db.user.findUnique({
       where: {
         email,
       },
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const user = await prisma.user.create({
+    const user = await db.user.create({
       data: {
         email,
         name,
