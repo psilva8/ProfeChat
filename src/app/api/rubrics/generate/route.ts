@@ -3,7 +3,9 @@ import { openai } from '@/lib/openai';
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const preferredRegion = 'home';
+export const dynamic = 'force-dynamic';
 
 interface RubricResponse {
   rubric: {

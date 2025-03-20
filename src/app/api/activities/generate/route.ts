@@ -3,7 +3,9 @@ import { auth } from '@/lib/auth';
 import { openai } from '@/lib/openai';
 import { db } from '@/lib/db';
 
-export const runtime = 'edge';
+// Force Node.js runtime
+export const runtime = 'nodejs';
+export const preferredRegion = 'home';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {

@@ -43,6 +43,7 @@ export function RegisterForm() {
     }
 
     try {
+      console.log('Sending registration request:', { name, email });
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -55,15 +56,17 @@ export function RegisterForm() {
         }),
       });
 
+      console.log('Registration response status:', response.status);
       const data = await response.json();
+      console.log('Registration response data:', data);
 
       if (!response.ok) {
         if (response.status === 400) {
           // Validation error
           setErrors({
-            general: data.error,
+            general: data.error || 'Error de validación',
           });
-          toast.error(data.error);
+          toast.error(data.error || 'Error de validación');
         } else {
           throw new Error(data.error || 'Error al registrar usuario');
         }
