@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
   });
   const isAuth = !!token;
   const isAuthPage = request.nextUrl.pathname.startsWith("/auth");
+  const isHomePage = request.nextUrl.pathname === "/";
 
   if (isAuthPage) {
     if (isAuth) {
@@ -17,7 +18,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!isAuth && !isAuthPage) {
+  if (!isAuth && !isAuthPage && !isHomePage) {
     let from = request.nextUrl.pathname;
     if (request.nextUrl.search) {
       from += request.nextUrl.search;
