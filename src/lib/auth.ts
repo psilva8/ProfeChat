@@ -1,9 +1,13 @@
-import bcrypt from "bcryptjs";
-import NextAuth, { type DefaultSession } from "next-auth";
+import NextAuth from "next-auth";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { db } from "@/lib/db";
 import type { NextAuthConfig } from "next-auth";
+import type { DefaultSession, Session } from "next-auth";
+import authConfig from "./auth.config";
+import bcrypt from "bcryptjs";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
-import { db } from "@/lib/db";
+import type { User } from "@prisma/client";
 
 declare module "next-auth" {
   interface Session {
@@ -13,90 +17,34 @@ declare module "next-auth" {
   }
 }
 
-export const config = {
-  providers: [
-    Credentials({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
-        }
-
-        const email = credentials.email as string;
-        const password = credentials.password as string;
-
-        const user = await db.user.findUnique({
-          where: { email }
-        });
-
-        if (!user || !user?.hashedPassword) {
-          throw new Error("User not found");
-        }
-
-        const isCorrectPassword = await bcrypt.compare(
-          password,
-          user.hashedPassword
-        );
-
-        if (!isCorrectPassword) {
-          throw new Error("Invalid password");
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        };
-      }
-    }),
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  pages: {
-    signIn: '/auth/login',
-    signOut: '/auth/logout',
-    error: '/auth/error',
-    verifyRequest: '/auth/verify-request',
-    newUser: '/auth/register'
-  },
-  session: {
+export const {
+  handlers: { GET, POST },
+  auth,
+  signIn,
+  signOut,
+} = NextAuth({
+  adapter: PrismaAdapter(db),
+  session: { 
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
       }
       return session;
     },
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
+    },
   },
-  trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === 'development',
-} satisfies NextAuthConfig;
-
-// Initialize NextAuth for App Router
-const { auth: nextAuth, handlers: authHandlers, signIn, signOut } = NextAuth(config);
-
-// Re-export the handlers and auth function
-export const auth = nextAuth;
-export const handlers = authHandlers;
-export { signIn, signOut };
+  ...authConfig,
+});
 
 export async function getCurrentUser() {
   try {
