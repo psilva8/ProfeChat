@@ -1,4 +1,5 @@
-import { handlers } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { config } from "@/lib/auth";
 
-// Export NextAuth v5 handler function
-export const { GET, POST } = handlers; 
+const handler = NextAuth(config);
+export { handler as GET, handler as POST }; 

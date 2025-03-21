@@ -2,41 +2,41 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Middleware function to handle authentication
 export default auth((req) => {
-  const isAuth = !!req.auth;
-  const isAuthPage = req.nextUrl.pathname.startsWith("/auth");
-  const isApiAuthRoute = req.nextUrl.pathname.startsWith("/api/auth");
-  const isHomePage = req.nextUrl.pathname === "/";
+  const isLoggedIn = !!req.auth;
+  const isApiAuthRoute = req.nextUrl.pathname.startsWith('/api/auth');
+  const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
+  const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
 
-  // Allow API auth routes to pass through
+  // Always allow API auth routes to pass through
   if (isApiAuthRoute) {
     return NextResponse.next();
   }
 
-  if (isAuthPage) {
-    if (isAuth) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-    return NextResponse.next();
+  // Redirect to dashboard if logged in and trying to access auth pages
+  if (isAuthPage && isLoggedIn) {
+    return Response.redirect(new URL('/dashboard', req.nextUrl));
   }
 
-  if (!isAuth && !isAuthPage && !isHomePage) {
-    let from = req.nextUrl.pathname;
-    if (req.nextUrl.search) {
-      from += req.nextUrl.search;
-    }
-
-    return NextResponse.redirect(
-      new URL(`/auth/login?from=${encodeURIComponent(from)}`, req.url)
-    );
+  // Redirect to login if not logged in and trying to access dashboard
+  if (isDashboardRoute && !isLoggedIn) {
+    return Response.redirect(new URL('/auth/login', req.nextUrl));
   }
 
   return NextResponse.next();
 });
 
-// Optionally, don't invoke Middleware on some paths
+// Configure middleware matcher
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public (public files)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 }; 
