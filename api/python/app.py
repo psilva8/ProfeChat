@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from openai import OpenAI
+from openai import OpenAI, OpenAIError, AuthenticationError
 import os
 from dotenv import load_dotenv
 import logging
@@ -19,16 +19,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv()
+load_dotenv(verbose=True)
 
 app = Flask(__name__)
 CORS(app)
 
 # Initialize OpenAI client
 api_key = os.getenv('OPENAI_API_KEY')
+logger.info(f"API Key status: {'Configured' if api_key else 'Not configured'}")
+logger.info(f"Current working directory: {os.getcwd()}")
+
 if not api_key:
-    logger.error("OPENAI_API_KEY is not set in environment variables")
-    raise ValueError("OPENAI_API_KEY is required")
+    logger.error("Invalid or missing OpenAI API key")
+    raise ValueError("OpenAI API key not configured")
 
 client = OpenAI(api_key=api_key)
 
@@ -45,134 +48,82 @@ def validate_request_data(data: Dict[str, Any], required_fields: list) -> Option
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Check the health of the server and OpenAI connection."""
     try:
-        # Test the OpenAI client
+        if not api_key or api_key == 'your-api-key-here':
+            return jsonify({
+                "status": "unhealthy",
+                "error": "OpenAI API key not configured. Please set a valid API key in .env file"
+            }), 500
+
+        # Test OpenAI connection
         client.models.list()
+        return jsonify({"status": "healthy", "message": "API is operational"}), 200
+    except AuthenticationError as e:
+        logger.error(f"OpenAI API key authentication failed: {str(e)}")
         return jsonify({
-            "status": "healthy",
-            "service": "flask-backend",
-            "openai_key_configured": True,
-            "openai_connection": "successful"
-        })
+            "status": "unhealthy",
+            "error": "Invalid OpenAI API key. Please check your configuration."
+        }), 401
+    except OpenAIError as e:
+        logger.error(f"OpenAI API error: {str(e)}")
+        return jsonify({
+            "status": "unhealthy",
+            "error": f"OpenAI API error: {str(e)}"
+        }), 500
     except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
+        logger.error(f"Unexpected error: {str(e)}")
         return jsonify({
-            "status": "unhealthy", 
-            "error": str(e),
-            "openai_key_configured": bool(api_key)
+            "status": "unhealthy",
+            "error": "Internal server error"
         }), 500
 
 @app.route('/api/generate-lesson', methods=['POST'])
 def generate_lesson():
-    """Generate a lesson plan based on provided parameters."""
     try:
-        data = request.json
-        error = validate_request_data(data, ['subject', 'grade', 'topic', 'objectives', 'duration'])
-        if error:
-            logger.error(f"Request validation failed: {error}")
-            return jsonify({"success": False, "error": error}), 400
-
-        subject = data['subject']
-        grade = data['grade']
-        topic = data['topic']
-        objectives = data['objectives']
-        duration = data['duration']
+        data = request.get_json()
         
-        logger.info(f"Generating lesson plan for subject: {subject}, grade: {grade}, topic: {topic}")
-        
-        prompt = f"""Crea un plan de lección detallado para la clase de {subject}, {grade}° grado, sobre el tema: {topic}.
-
-Objetivos de Aprendizaje:
-{objectives}
-
-Duración: {duration} minutos
-
-El plan debe incluir:
-1. Inicio (activación de conocimientos previos)
-2. Desarrollo (actividades principales)
-3. Cierre (evaluación y reflexión)
-4. Materiales necesarios
-5. Adaptaciones para diferentes niveles
-6. Evaluación formativa
-7. Tarea o extensión
-
-Asegúrate de que el plan:
-- Esté alineado con el Currículo Nacional de Educación Básica del Perú
-- Sea apropiado para la edad y nivel de los estudiantes
-- Incluya estrategias de aprendizaje activo
-- Considere diferentes estilos de aprendizaje
-- Incorpore elementos de evaluación formativa
-
-Por favor, estructura la respuesta en formato JSON con las siguientes secciones:
-{
-  "inicio": {
-    "duracion": "tiempo en minutos",
-    "actividades": ["lista de actividades"],
-    "materiales": ["lista de materiales"]
-  },
-  "desarrollo": {
-    "duracion": "tiempo en minutos",
-    "actividades": ["lista de actividades"],
-    "materiales": ["lista de materiales"]
-  },
-  "cierre": {
-    "duracion": "tiempo en minutos",
-    "actividades": ["lista de actividades"],
-    "evaluacion": ["criterios de evaluación"]
-  },
-  "adaptaciones": ["lista de adaptaciones"],
-  "tarea": "descripción de la tarea",
-  "recursos_adicionales": ["lista de recursos"]
-}"""
-        
-        try:
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Eres un experto en educación especializado en crear planes de lección efectivos y alineados con el currículo peruano. Todas tus respuestas deben ser en español y en formato JSON válido."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=2000
-            )
-            
-            lesson_plan = response.choices[0].message.content
-            
-            # Validate JSON response
-            try:
-                lesson_plan_json = json.loads(lesson_plan)
-                logger.info("Lesson plan generated successfully")
-                return jsonify({
-                    "success": True,
-                    "lesson_plan": lesson_plan_json
-                })
-            except json.JSONDecodeError as e:
-                logger.error(f"Invalid JSON in OpenAI response: {e}")
+        # Validate required fields
+        required_fields = ['subject', 'grade', 'topic']
+        for field in required_fields:
+            if field not in data:
                 return jsonify({
                     "success": False,
-                    "error": "Error en el formato de la respuesta",
-                    "details": str(e)
-                }), 500
-                
-        except Exception as e:
-            logger.error(f"OpenAI API error: {str(e)}")
-            return jsonify({
-                "success": False,
-                "error": f"Error al comunicarse con OpenAI: {str(e)}"
-            }), 500
-            
-    except Exception as e:
-        logger.error(f"Error generating lesson plan: {str(e)}")
+                    "error": f"Missing required field: {field}"
+                }), 400
+
+        # Create prompt for lesson plan
+        prompt = f"Create a detailed lesson plan for {data['subject']} grade {data['grade']} about {data['topic']}."
+        if 'objectives' in data:
+            prompt += f"\nLearning objectives: {data['objectives']}"
+        if 'duration' in data:
+            prompt += f"\nLesson duration: {data['duration']}"
+
+        # Call OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a professional teacher creating a detailed lesson plan."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        lesson_plan = response.choices[0].message.content
+        return jsonify({
+            "success": True,
+            "lesson_plan": lesson_plan
+        })
+
+    except OpenAIError as e:
+        logger.error(f"OpenAI API error: {str(e)}")
         return jsonify({
             "success": False,
-            "error": f"Error al generar el plan de lección: {str(e)}"
+            "error": f"Error with OpenAI API: {str(e)}"
+        }), 500
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "Internal server error"
         }), 500
 
 @app.route('/api/generate-rubric', methods=['POST'])
@@ -290,6 +241,16 @@ def generate_activities():
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.getenv('FLASK_PORT', 5328))
-    logger.info(f"Starting Flask server on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=True) 
+    port = int(os.getenv('PORT', 5329))
+    host = os.getenv('HOST', '0.0.0.0')
+    logger.info(f"Starting Flask server on {host}:{port}")
+    try:
+        app.run(host=host, port=port, debug=True)
+    except OSError as e:
+        if "Address already in use" in str(e):
+            # Try the next available port
+            port = port + 1
+            logger.info(f"Port {port-1} in use, trying port {port}")
+            app.run(host=host, port=port, debug=True)
+        else:
+            raise 
