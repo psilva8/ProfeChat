@@ -1,13 +1,8 @@
 import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { db } from "@/lib/db";
 import type { NextAuthConfig } from "next-auth";
-import type { DefaultSession, Session } from "next-auth";
-import authConfig from "./auth.config";
-import bcrypt from "bcryptjs";
 import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
-import type { User } from "@prisma/client";
+import type { DefaultSession } from "next-auth";
+import authConfig from "./auth.config";
 
 declare module "next-auth" {
   interface Session {
@@ -17,14 +12,46 @@ declare module "next-auth" {
   }
 }
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
-  adapter: PrismaAdapter(db),
-  session: { 
+const config = {
+  ...authConfig,
+  providers: [
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Invalid credentials");
+        }
+
+        try {
+          const response = await fetch(`/api/auth/db`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || "Authentication failed");
+          }
+
+          const user = await response.json();
+          return user;
+        } catch (error) {
+          console.error('Auth error:', error);
+          throw new Error(error instanceof Error ? error.message : "Authentication failed");
+        }
+      }
+    }),
+    ...authConfig.providers,
+  ],
+  session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
@@ -43,8 +70,9 @@ export const {
       return token;
     },
   },
-  ...authConfig,
-});
+} satisfies NextAuthConfig;
+
+export const { handlers, auth, signIn, signOut } = NextAuth(config);
 
 export async function getCurrentUser() {
   try {
