@@ -3,182 +3,283 @@
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 
+interface LessonPlan {
+  inicio: {
+    duracion: string;
+    actividades: string[];
+    materiales: string[];
+  };
+  desarrollo: {
+    duracion: string;
+    actividades: string[];
+    materiales: string[];
+  };
+  cierre: {
+    duracion: string;
+    actividades: string[];
+    evaluacion: string[];
+  };
+  adaptaciones: string[];
+  tarea: string;
+  recursos_adicionales: string[];
+}
+
 export default function LessonPlanner() {
+  const [subject, setSubject] = useState('');
+  const [grade, setGrade] = useState('');
+  const [topic, setTopic] = useState('');
+  const [objectives, setObjectives] = useState('');
+  const [duration, setDuration] = useState('');
   const [loading, setLoading] = useState(false);
-  const [lessonPlan, setLessonPlan] = useState('');
+  const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    subject: '',
-    grade: '',
-    topic: '',
-  });
+
+  const checkServerHealth = async () => {
+    try {
+      const response = await fetch('/api/health');
+      const data = await response.json();
+      
+      if (!data.openai_key_configured) {
+        throw new Error('La clave de API de OpenAI no está configurada correctamente');
+      }
+      
+      if (data.status !== 'healthy') {
+        throw new Error('El servidor no está respondiendo correctamente');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error checking server health:', error);
+      return false;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
-    setLessonPlan('');
-    
+    setLoading(true);
+    setLessonPlan(null);
+
     try {
-      // First check if the Flask server is running
-      const healthCheck = await fetch('/api/proxy/health');
-      const healthStatus = await healthCheck.json();
-      
-      if (healthStatus.status !== 'healthy') {
-        throw new Error('El servidor Flask no está funcionando correctamente. Por favor, intente nuevamente.');
-      }
-      
-      if (!healthStatus.openai_key_configured) {
-        throw new Error('La clave de API de OpenAI no está configurada correctamente.');
+      // Check server health first
+      const isHealthy = await checkServerHealth();
+      if (!isHealthy) {
+        throw new Error('El servidor no está disponible. Por favor, inténtelo de nuevo más tarde.');
       }
 
-      const response = await fetch('/api/proxy/generate-lesson', {
+      const response = await fetch('/api/generate-lesson', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          subject,
+          grade,
+          topic,
+          objectives,
+          duration
+        }),
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `¡Error HTTP! estado: ${response.status}`);
-      }
-      
+
       const data = await response.json();
-      
-      if (data.success) {
-        setLessonPlan(data.lesson_plan);
-        toast.success('¡Plan de lección generado exitosamente!');
-      } else {
+
+      if (!data.success) {
         throw new Error(data.error || 'Error al generar el plan de lección');
       }
+
+      setLessonPlan(data.lesson_plan);
+      toast.success('¡Plan de lección generado exitosamente!');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Error desconocido');
+      toast.error(error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (error) setError(null);
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="border-b border-gray-200 pb-5">
-        <h2 className="text-2xl font-semibold leading-7 text-gray-900">Planificador de Lecciones</h2>
-        <p className="mt-1 text-sm leading-6 text-gray-600">
-          Genera planes de lecciones detallados alineados con el currículo peruano.
-        </p>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8 text-center">Generador de Planes de Lección</h1>
+      
+      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Asignatura
+          </label>
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Grado
+          </label>
+          <input
+            type="text"
+            value={grade}
+            onChange={(e) => setGrade(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tema
+          </label>
+          <input
+            type="text"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Objetivos de Aprendizaje
+          </label>
+          <textarea
+            value={objectives}
+            onChange={(e) => setObjectives(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            rows={4}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Duración (en minutos)
+          </label>
+          <input
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className={`w-full py-2 px-4 rounded-md text-white font-medium ${
+            loading
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700'
+          }`}
+        >
+          {loading ? 'Generando...' : 'Generar Plan de Lección'}
+        </button>
+      </form>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>{error}</p>
-              </div>
-            </div>
-          </div>
+        <div className="mt-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">
+          {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2">
-          <div>
-            <label htmlFor="subject" className="block text-sm font-medium leading-6 text-gray-900">
-              Asignatura
-            </label>
-            <div className="mt-2">
-              <input
-                type="text"
-                name="subject"
-                id="subject"
-                required
-                value={formData.subject}
-                onChange={handleInputChange}
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                placeholder="ej., Matemáticas, Ciencias, Comunicación"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="grade" className="block text-sm font-medium leading-6 text-gray-900">
-              Grado
-            </label>
-            <div className="mt-2">
-              <select
-                id="grade"
-                name="grade"
-                required
-                value={formData.grade}
-                onChange={handleInputChange}
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-              >
-                <option value="">Seleccionar grado</option>
-                {[1, 2, 3, 4, 5, 6].map((grade) => (
-                  <option key={grade} value={grade}>
-                    {grade}° Grado
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="sm:col-span-2">
-            <label htmlFor="topic" className="block text-sm font-medium leading-6 text-gray-900">
-              Tema
-            </label>
-            <div className="mt-2">
-              <input
-                type="text"
-                name="topic"
-                id="topic"
-                required
-                value={formData.topic}
-                onChange={handleInputChange}
-                placeholder="ej., Fracciones, Sistema Solar, Producción de Textos"
-                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50"
-          >
-            {loading ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Generando...
-              </span>
-            ) : (
-              'Generar Plan de Lección'
-            )}
-          </button>
-        </div>
-      </form>
-
       {lessonPlan && (
-        <div className="mt-8">
-          <h3 className="text-lg font-medium leading-6 text-gray-900">Plan de Lección Generado</h3>
-          <div className="mt-4 rounded-md bg-white p-6 shadow">
-            <pre className="whitespace-pre-wrap text-sm text-gray-700">{lessonPlan}</pre>
+        <div className="mt-8 max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold mb-6">Plan de Lección Generado</h2>
+          
+          <div className="space-y-8">
+            <section className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold mb-4">Inicio ({lessonPlan.inicio.duracion})</h3>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Actividades:</h4>
+                  <ul className="list-disc pl-5 space-y-2">
+                    {lessonPlan.inicio.actividades.map((actividad, index) => (
+                      <li key={index}>{actividad}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Materiales:</h4>
+                  <ul className="list-disc pl-5 space-y-2">
+                    {lessonPlan.inicio.materiales.map((material, index) => (
+                      <li key={index}>{material}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold mb-4">Desarrollo ({lessonPlan.desarrollo.duracion})</h3>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Actividades:</h4>
+                  <ul className="list-disc pl-5 space-y-2">
+                    {lessonPlan.desarrollo.actividades.map((actividad, index) => (
+                      <li key={index}>{actividad}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Materiales:</h4>
+                  <ul className="list-disc pl-5 space-y-2">
+                    {lessonPlan.desarrollo.materiales.map((material, index) => (
+                      <li key={index}>{material}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold mb-4">Cierre ({lessonPlan.cierre.duracion})</h3>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Actividades:</h4>
+                  <ul className="list-disc pl-5 space-y-2">
+                    {lessonPlan.cierre.actividades.map((actividad, index) => (
+                      <li key={index}>{actividad}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Evaluación:</h4>
+                  <ul className="list-disc pl-5 space-y-2">
+                    {lessonPlan.cierre.evaluacion.map((criterio, index) => (
+                      <li key={index}>{criterio}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold mb-4">Adaptaciones</h3>
+              <ul className="list-disc pl-5 space-y-2">
+                {lessonPlan.adaptaciones.map((adaptacion, index) => (
+                  <li key={index}>{adaptacion}</li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold mb-4">Tarea</h3>
+              <p>{lessonPlan.tarea}</p>
+            </section>
+
+            <section className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-xl font-semibold mb-4">Recursos Adicionales</h3>
+              <ul className="list-disc pl-5 space-y-2">
+                {lessonPlan.recursos_adicionales.map((recurso, index) => (
+                  <li key={index}>{recurso}</li>
+                ))}
+              </ul>
+            </section>
           </div>
         </div>
       )}
