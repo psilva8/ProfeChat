@@ -1,17 +1,8 @@
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import type { DefaultSession } from "next-auth";
 
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-    } & DefaultSession["user"]
-  }
-}
-
-export const authConfig = {
+export const config = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -37,22 +28,35 @@ export const authConfig = {
     error: "/auth/error"
   },
   callbacks: {
-    async jwt({ token, user }) {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
+      
+      if (isOnDashboard) {
+        if (isLoggedIn) return true;
+        return false; // Redirect unauthenticated users to login page
+      }
+      
+      return true;
+    },
+    jwt({ token, user }) {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
-    async session({ session, token }) {
+    session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
       }
       return session;
     }
-  }
+  },
+  trustHost: true,
+  secret: process.env.NEXTAUTH_SECRET
 } satisfies NextAuthConfig;
 
-export const { auth, signIn, signOut } = NextAuth(authConfig);
+export const { auth, signIn, signOut, handlers } = NextAuth(config);
 
 export async function getCurrentUser() {
   try {

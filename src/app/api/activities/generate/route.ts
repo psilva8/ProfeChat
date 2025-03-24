@@ -92,6 +92,13 @@ Formato de respuesta:
     }
 
     // Save the activity to the database
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'User ID not found' },
+        { status: 401 }
+      );
+    }
+
     const activity = await db.activity.create({
       data: {
         userId: session.user.id,
@@ -99,7 +106,7 @@ Formato de respuesta:
         subject,
         grade,
         type,
-        duration,
+        duration: parseInt(duration),
         objectives,
         content: response.choices[0].message.content || '',
         materials: JSON.stringify(materials),

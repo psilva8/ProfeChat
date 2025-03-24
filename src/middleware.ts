@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 export const runtime = 'nodejs';
 
@@ -26,7 +25,7 @@ export default auth((req) => {
 
   // Redirect to login if not logged in and trying to access protected routes
   if (isDashboardRoute && !isLoggedIn) {
-    const redirectUrl = new URL('/auth/login', req.nextUrl);
+    const redirectUrl = new URL('/auth/signin', req.nextUrl);
     redirectUrl.searchParams.set('callbackUrl', req.nextUrl.pathname);
     return Response.redirect(redirectUrl);
   }
