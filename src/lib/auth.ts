@@ -1,15 +1,6 @@
 import NextAuth from "next-auth";
-import type { DefaultSession, NextAuthConfig } from "next-auth";
+import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { cookies } from "next/headers";
-
-declare module "next-auth" {
-  interface Session extends DefaultSession {
-    user: {
-      id: string;
-    } & DefaultSession["user"]
-  }
-}
 
 export const authConfig = {
   providers: [
@@ -23,7 +14,7 @@ export const authConfig = {
         if (credentials?.email && credentials?.password) {
           return {
             id: "1",
-            email: credentials.email,
+            email: credentials.email as string,
             name: "Test User"
           };
         }
@@ -35,31 +26,19 @@ export const authConfig = {
     signIn: "/auth/signin",
     error: "/auth/error"
   },
-  session: {
-    strategy: "jwt"
-  },
-  cookies: {
-    sessionToken: {
-      name: `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      },
-    },
-  },
-  secret: process.env.NEXTAUTH_SECRET
+  callbacks: {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
+      if (isOnDashboard) {
+        if (isLoggedIn) return true;
+        return false; // Redirect unauthenticated users to login page
+      } else if (isLoggedIn) {
+        return Response.redirect(new URL('/dashboard', nextUrl));
+      }
+      return true;
+    }
+  }
 } satisfies NextAuthConfig;
 
 export const { auth, signIn, signOut } = NextAuth(authConfig);
-
-export async function getCurrentUser() {
-  try {
-    const session = await auth();
-    return session?.user;
-  } catch (error) {
-    console.error('Error getting current user:', error);
-    return null;
-  }
-}
