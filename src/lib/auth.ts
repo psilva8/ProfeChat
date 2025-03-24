@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-export const config = {
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -24,7 +24,7 @@ export const config = {
     })
   ],
   pages: {
-    signIn: "/auth/signin",
+    signIn: "/auth/login",
     error: "/auth/error"
   },
   callbacks: {
@@ -57,7 +57,7 @@ export const config = {
   debug: process.env.NODE_ENV === "development",
 } satisfies NextAuthConfig;
 
-export const { auth, signIn, signOut, handlers } = NextAuth(config);
+export const { auth, signIn, signOut, handlers } = NextAuth(authOptions);
 
 export async function getCurrentUser() {
   try {

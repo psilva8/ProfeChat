@@ -14,7 +14,8 @@ export default auth((req) => {
                        req.nextUrl.pathname.startsWith('/public') ||
                        req.nextUrl.pathname.startsWith('/features') ||
                        req.nextUrl.pathname.startsWith('/pricing') ||
-                       req.nextUrl.pathname.startsWith('/api/health');
+                       req.nextUrl.pathname.startsWith('/api/health') ||
+                       req.nextUrl.pathname.startsWith('/favicon.ico');
 
   // Always allow public routes and API auth routes
   if (isPublicRoute || isApiAuthRoute) {

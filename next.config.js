@@ -11,7 +11,7 @@ const nextConfig = {
   async rewrites() {
     if (process.env.NODE_ENV === 'development') {
       return [
-        // Keep NextAuth routes handled by Next.js
+        // Keep NextAuth routes handled by Next.js (must come first)
         {
           source: '/api/auth/:path*',
           destination: '/api/auth/:path*',
@@ -19,12 +19,12 @@ const nextConfig = {
         // Forward all other API routes to Flask
         {
           source: '/api/:path*',
-          destination: 'http://localhost:5333/api/:path*',
+          destination: 'http://localhost:5335/api/:path*',
         }
-      ]
+      ];
     }
     
-    // In production, don't rewrite API routes
+    // In production, no rewrites needed
     return [];
   }
 }
