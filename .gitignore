@@ -60,3 +60,4 @@ MANIFEST
 # SQLite
 *.db
 *.db-journal
+.env.production
