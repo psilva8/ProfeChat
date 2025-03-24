@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { cookies } from "next/headers";
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
@@ -10,7 +11,7 @@ declare module "next-auth" {
   }
 }
 
-export const authOptions: NextAuthConfig = {
+export const authConfig = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -20,7 +21,6 @@ export const authOptions: NextAuthConfig = {
       },
       async authorize(credentials) {
         if (credentials?.email && credentials?.password) {
-          // For testing purposes, accept any valid email/password
           return {
             id: "1",
             email: credentials.email,
@@ -38,7 +38,28 @@ export const authOptions: NextAuthConfig = {
   session: {
     strategy: "jwt"
   },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   secret: process.env.NEXTAUTH_SECRET
-};
+} satisfies NextAuthConfig;
 
-export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth(authOptions);
+export const { auth, signIn, signOut } = NextAuth(authConfig);
+
+export async function getCurrentUser() {
+  try {
+    const session = await auth();
+    return session?.user;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+}
