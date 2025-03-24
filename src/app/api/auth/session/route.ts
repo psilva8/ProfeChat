@@ -6,13 +6,10 @@ export async function GET() {
     const session = await auth();
     
     if (!session) {
-      return NextResponse.json(
-        { message: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json(null, { status: 200 });
     }
     
-    return NextResponse.json({ session });
+    return NextResponse.json(session);
   } catch (error) {
     console.error("Session error:", error);
     return NextResponse.json(

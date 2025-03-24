@@ -9,13 +9,20 @@ export default auth((req) => {
   const isApiAuthRoute = req.nextUrl.pathname.startsWith('/api/auth');
   const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
   const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
-  const isPublicRoute = req.nextUrl.pathname === '/' || 
-                       req.nextUrl.pathname.startsWith('/_next') ||
-                       req.nextUrl.pathname.startsWith('/public') ||
-                       req.nextUrl.pathname.startsWith('/features') ||
-                       req.nextUrl.pathname.startsWith('/pricing') ||
-                       req.nextUrl.pathname.startsWith('/api/health') ||
-                       req.nextUrl.pathname.startsWith('/favicon.ico');
+  
+  // Define all public routes that don't require authentication
+  const isPublicRoute = 
+    req.nextUrl.pathname === '/' || 
+    req.nextUrl.pathname.startsWith('/_next') ||
+    req.nextUrl.pathname.startsWith('/public') ||
+    req.nextUrl.pathname.startsWith('/features') ||
+    req.nextUrl.pathname.startsWith('/pricing') ||
+    req.nextUrl.pathname.startsWith('/api/health') ||
+    req.nextUrl.pathname.startsWith('/favicon.ico') ||
+    req.nextUrl.pathname.startsWith('/rubrics') ||
+    req.nextUrl.pathname.startsWith('/activities') ||
+    req.nextUrl.pathname.startsWith('/lesson-planner') ||
+    req.nextUrl.pathname.startsWith('/unit-planner');
 
   // Always allow public routes and API auth routes
   if (isPublicRoute || isApiAuthRoute) {
