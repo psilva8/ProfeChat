@@ -23,6 +23,8 @@ const nextConfig = {
         }
       ]
     }
+    
+    // In production, don't rewrite API routes
     return [];
   }
 }

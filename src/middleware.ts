@@ -11,7 +11,10 @@ export default auth((req) => {
   const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
   const isPublicRoute = req.nextUrl.pathname === '/' || 
                        req.nextUrl.pathname.startsWith('/_next') ||
-                       req.nextUrl.pathname.startsWith('/public');
+                       req.nextUrl.pathname.startsWith('/public') ||
+                       req.nextUrl.pathname.startsWith('/features') ||
+                       req.nextUrl.pathname.startsWith('/pricing') ||
+                       req.nextUrl.pathname.startsWith('/api/health');
 
   // Always allow public routes and API auth routes
   if (isPublicRoute || isApiAuthRoute) {
@@ -25,7 +28,7 @@ export default auth((req) => {
 
   // Redirect to login if not logged in and trying to access protected routes
   if (isDashboardRoute && !isLoggedIn) {
-    const redirectUrl = new URL('/auth/signin', req.nextUrl);
+    const redirectUrl = new URL('/auth/login', req.nextUrl);
     redirectUrl.searchParams.set('callbackUrl', req.nextUrl.pathname);
     return Response.redirect(redirectUrl);
   }
