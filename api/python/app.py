@@ -7,6 +7,7 @@ import logging
 import sys
 import json
 from typing import Dict, Any, Optional
+import socket
 
 # Configure logging
 logging.basicConfig(
@@ -19,21 +20,54 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv(verbose=True)
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
+def is_port_in_use(port: int) -> bool:
+    """Check if a port is already in use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('0.0.0.0', port))
+            return False
+        except socket.error:
+            return True
+
+def get_available_port(start_port: int, max_attempts: int = 10) -> int:
+    """Get the next available port starting from start_port."""
+    port = start_port
+    while port < (start_port + max_attempts):
+        if not is_port_in_use(port):
+            return port
+        port += 1
+    raise RuntimeError(f"No available ports found between {start_port} and {start_port + max_attempts - 1}")
+
+def validate_api_key(api_key: str) -> OpenAI:
+    """Validate OpenAI API key and initialize client."""
+    if not api_key or api_key == 'your-api-key-here':
+        logger.error("OpenAI API key not configured")
+        raise ValueError("OpenAI API key not configured")
+
+    try:
+        client = OpenAI(api_key=api_key)
+        client.models.list()
+        logger.info("OpenAI API key validated successfully")
+        return client
+    except AuthenticationError as e:
+        logger.error("Invalid OpenAI API key")
+        raise ValueError("Invalid OpenAI API key") from e
+    except Exception as e:
+        logger.error(f"Error initializing OpenAI client: {str(e)}")
+        raise
+
 # Initialize OpenAI client
 api_key = os.getenv('OPENAI_API_KEY')
-logger.info(f"API Key status: {'Configured' if api_key else 'Not configured'}")
-logger.info(f"Current working directory: {os.getcwd()}")
-
-if not api_key:
-    logger.error("Invalid or missing OpenAI API key")
-    raise ValueError("OpenAI API key not configured")
-
-client = OpenAI(api_key=api_key)
+try:
+    client = validate_api_key(api_key)
+except Exception as e:
+    logger.error(f"Failed to initialize OpenAI client: {str(e)}")
+    client = None
 
 def validate_request_data(data: Dict[str, Any], required_fields: list) -> Optional[str]:
     """Validate request data and return error message if invalid."""
@@ -99,26 +133,26 @@ def generate_lesson():
             prompt += f"\nLesson duration: {data['duration']}"
 
         # Call OpenAI API
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a professional teacher creating a detailed lesson plan."},
-                {"role": "user", "content": prompt}
-            ]
-        )
+        try:
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a professional teacher creating a detailed lesson plan."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
 
-        lesson_plan = response.choices[0].message.content
-        return jsonify({
-            "success": True,
-            "lesson_plan": lesson_plan
-        })
-
-    except OpenAIError as e:
-        logger.error(f"OpenAI API error: {str(e)}")
-        return jsonify({
-            "success": False,
-            "error": f"Error with OpenAI API: {str(e)}"
-        }), 500
+            lesson_plan = response.choices[0].message.content
+            return jsonify({
+                "success": True,
+                "lesson_plan": lesson_plan
+            })
+        except OpenAIError as e:
+            logger.error(f"OpenAI API error: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": f"Error with OpenAI API: {str(e)}"
+            }), 500
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         return jsonify({
@@ -241,16 +275,12 @@ def generate_activities():
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5329))
-    host = os.getenv('HOST', '0.0.0.0')
-    logger.info(f"Starting Flask server on {host}:{port}")
     try:
+        default_port = int(os.getenv('PORT', 5328))
+        port = get_available_port(default_port)
+        host = os.getenv('HOST', '0.0.0.0')
+        logger.info(f"Starting Flask server on {host}:{port}")
         app.run(host=host, port=port, debug=True)
-    except OSError as e:
-        if "Address already in use" in str(e):
-            # Try the next available port
-            port = port + 1
-            logger.info(f"Port {port-1} in use, trying port {port}")
-            app.run(host=host, port=port, debug=True)
-        else:
-            raise 
+    except Exception as e:
+        logger.error(f"Failed to start server: {str(e)}")
+        sys.exit(1) 
