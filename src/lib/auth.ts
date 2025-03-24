@@ -1,12 +1,14 @@
-import NextAuth, { type DefaultSession, type NextAuthOptions } from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { getServerSession as getNextAuthServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 
-declare module "next-auth" {
-  interface Session extends DefaultSession {
+declare module '@auth/core/types' {
+  interface Session {
     user: {
       id: string;
-    } & DefaultSession["user"]
+      email: string;
+      name: string;
+    }
   }
 }
 
@@ -23,7 +25,7 @@ export const authOptions: NextAuthOptions = {
           // For testing purposes, accept any valid email/password
           return {
             id: "1",
-            email: credentials.email,
+            email: credentials.email as string,
             name: "Test User"
           };
         }
@@ -41,9 +43,9 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET
 };
 
-export const auth = async () => await getNextAuthServerSession(authOptions);
+export const auth = async () => await getServerSession(authOptions);
 
-export const getServerSession = async () => {
+export const getCurrentUser = async () => {
   const session = await auth();
-  return session;
+  return session?.user;
 };
