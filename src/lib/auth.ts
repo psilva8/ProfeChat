@@ -1,85 +1,33 @@
-import NextAuth from "next-auth";
-import type { NextAuthConfig } from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import type { DefaultSession } from "next-auth";
-import authConfig from "./auth.config";
+import type { NextAuthOptions, User } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-    } & DefaultSession["user"]
-  }
-}
-
-const config = {
-  ...authConfig,
+export const authOptions: NextAuthOptions = {
   providers: [
-    Credentials({
-      name: "credentials",
+    CredentialsProvider({
+      name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
+      async authorize(credentials): Promise<User | null> {
+        if (credentials?.email && credentials?.password) {
+          // For testing purposes, accept any valid email/password
+          return {
+            id: "1",
+            email: credentials.email as string,
+            name: "Test User"
+          };
         }
-
-        try {
-          const response = await fetch(`/api/auth/db`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
-          });
-
-          if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || "Authentication failed");
-          }
-
-          const user = await response.json();
-          return user;
-        } catch (error) {
-          console.error('Auth error:', error);
-          throw new Error(error instanceof Error ? error.message : "Authentication failed");
-        }
+        return null;
       }
-    }),
-    ...authConfig.providers,
+    })
   ],
+  pages: {
+    signIn: "/auth/signin",
+    error: "/auth/error"
+  },
   session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-    updateAge: 24 * 60 * 60, // 24 hours
+    strategy: "jwt"
   },
-  callbacks: {
-    async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
-      }
-      return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-      }
-      return token;
-    },
-  },
-} satisfies NextAuthConfig;
-
-export const { handlers, auth, signIn, signOut } = NextAuth(config);
-
-export async function getCurrentUser() {
-  try {
-    const session = await auth();
-    return session?.user;
-  } catch (error) {
-    console.error('Error getting current user:', error);
-    return null;
-  }
-}
+  secret: process.env.NEXTAUTH_SECRET
+};
