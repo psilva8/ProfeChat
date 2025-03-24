@@ -10,7 +10,6 @@ export default auth((req) => {
     req.nextUrl.pathname === '/' || 
     req.nextUrl.pathname.startsWith('/_next') ||
     req.nextUrl.pathname.startsWith('/public') ||
-    req.nextUrl.pathname.startsWith('/api/') ||
     req.nextUrl.pathname.startsWith('/favicon.ico') ||
     req.nextUrl.pathname.startsWith('/features') ||
     req.nextUrl.pathname.startsWith('/pricing') ||
@@ -18,7 +17,11 @@ export default auth((req) => {
     req.nextUrl.pathname.startsWith('/activities') ||
     req.nextUrl.pathname.startsWith('/lesson-planner') ||
     req.nextUrl.pathname.startsWith('/unit-planner') ||
-    req.nextUrl.pathname.startsWith('/auth');
+    req.nextUrl.pathname.startsWith('/auth') ||
+    req.nextUrl.pathname.startsWith('/apitest') ||
+    req.nextUrl.pathname.startsWith('/api/auth') ||
+    req.nextUrl.pathname.startsWith('/api/test-auth') ||
+    req.nextUrl.pathname.startsWith('/api/test-create');
 
   if (isPublicRoute) {
     return NextResponse.next();
@@ -27,9 +30,16 @@ export default auth((req) => {
   // For dashboard and other protected routes
   const isLoggedIn = !!req.auth;
   const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
+  const isProtectedApiRoute = req.nextUrl.pathname.startsWith('/api/') && !req.nextUrl.pathname.startsWith('/api/auth');
 
   // Redirect to login if not logged in and trying to access protected routes
-  if (isDashboardRoute && !isLoggedIn) {
+  if ((isDashboardRoute || isProtectedApiRoute) && !isLoggedIn) {
+    // For API routes, return an unauthorized response
+    if (isProtectedApiRoute) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+    
+    // For dashboard routes, redirect to login
     const redirectUrl = new URL('/auth/login', req.nextUrl);
     redirectUrl.searchParams.set('callbackUrl', req.nextUrl.pathname);
     return Response.redirect(redirectUrl);
