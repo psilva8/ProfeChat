@@ -53,7 +53,9 @@ export const config = {
     }
   },
   trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET,
+  // Adding basePath to ensure correct path resolution in production
+  basePath: "/api/auth",
 } satisfies NextAuthConfig;
 
 export const { auth, signIn, signOut, handlers } = NextAuth(config);
