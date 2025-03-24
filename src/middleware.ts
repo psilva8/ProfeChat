@@ -5,34 +5,28 @@ export const runtime = 'nodejs';
 
 // Middleware function to handle authentication
 export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const isApiAuthRoute = req.nextUrl.pathname.startsWith('/api/auth');
-  const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
-  const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
-  
   // Define all public routes that don't require authentication
   const isPublicRoute = 
     req.nextUrl.pathname === '/' || 
     req.nextUrl.pathname.startsWith('/_next') ||
     req.nextUrl.pathname.startsWith('/public') ||
+    req.nextUrl.pathname.startsWith('/api/') ||
+    req.nextUrl.pathname.startsWith('/favicon.ico') ||
     req.nextUrl.pathname.startsWith('/features') ||
     req.nextUrl.pathname.startsWith('/pricing') ||
-    req.nextUrl.pathname.startsWith('/api/health') ||
-    req.nextUrl.pathname.startsWith('/favicon.ico') ||
     req.nextUrl.pathname.startsWith('/rubrics') ||
     req.nextUrl.pathname.startsWith('/activities') ||
     req.nextUrl.pathname.startsWith('/lesson-planner') ||
-    req.nextUrl.pathname.startsWith('/unit-planner');
+    req.nextUrl.pathname.startsWith('/unit-planner') ||
+    req.nextUrl.pathname.startsWith('/auth');
 
-  // Always allow public routes and API auth routes
-  if (isPublicRoute || isApiAuthRoute) {
+  if (isPublicRoute) {
     return NextResponse.next();
   }
 
-  // Redirect to dashboard if logged in and trying to access auth pages
-  if (isAuthPage && isLoggedIn) {
-    return Response.redirect(new URL('/dashboard', req.nextUrl));
-  }
+  // For dashboard and other protected routes
+  const isLoggedIn = !!req.auth;
+  const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
 
   // Redirect to login if not logged in and trying to access protected routes
   if (isDashboardRoute && !isLoggedIn) {

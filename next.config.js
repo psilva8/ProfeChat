@@ -19,7 +19,7 @@ const nextConfig = {
         // Forward all other API routes to Flask
         {
           source: '/api/:path*',
-          destination: 'http://localhost:5335/api/:path*',
+          destination: 'http://localhost:5336/api/:path*',
         }
       ];
     }
