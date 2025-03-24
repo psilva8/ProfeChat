@@ -54,6 +54,7 @@ export default function TestPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTestIndex, setCurrentTestIndex] = useState(0);
+  const [result, setResult] = useState<any>(null);
 
   const addResult = (result: TestResult) => {
     setResults(prev => [...prev, result]);
@@ -197,6 +198,41 @@ export default function TestPage() {
     }
   };
 
+  const testLogin = async () => {
+    setIsLoading(true);
+    setError('');
+    setResult(null);
+    
+    try {
+      // Step 1: Login
+      const loginResult = await signIn('credentials', {
+        email: 'test@example.com',
+        password: 'password123',
+        redirect: false,
+      });
+
+      if (loginResult?.error) {
+        setError(`Login error: ${loginResult.error}`);
+        return;
+      }
+
+      // Step 2: Fetch lesson plans
+      const response = await fetch('/api/lesson-plans');
+      
+      if (!response.ok) {
+        setError(`API error: ${response.status} ${response.statusText}`);
+        return;
+      }
+      
+      const data = await response.json();
+      setResult(data);
+    } catch (err: any) {
+      setError(`Error: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     async function runNextTest() {
       if (currentTestIndex >= testCases.length) {
@@ -244,59 +280,30 @@ export default function TestPage() {
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Authentication Test Suite</h1>
-      
-      <div className="mb-4">
-        <button
-          onClick={startTests}
-          disabled={isLoading}
-          className={`px-4 py-2 rounded ${
-            isLoading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-          }`}
-        >
-          {isLoading ? 'Running Tests...' : 'Start Tests'}
-        </button>
-      </div>
+    <div className="container mx-auto p-8">
+      <h1 className="text-2xl font-bold mb-4">API Test Page</h1>
+      <button 
+        onClick={testLogin}
+        disabled={isLoading}
+        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+      >
+        {isLoading ? 'Testing...' : 'Test Lesson Plans API'}
+      </button>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          <strong>Error:</strong> {error}
+        <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
+          {error}
         </div>
       )}
 
-      <div className="bg-gray-100 p-4 rounded">
-        <h2 className="text-lg font-semibold mb-2">Test Results:</h2>
-        {results.map((result, index) => (
-          <div 
-            key={index} 
-            className={`mb-2 p-3 rounded shadow ${
-              result.status === 'success' ? 'bg-green-50 border-l-4 border-green-500' :
-              result.status === 'error' ? 'bg-red-50 border-l-4 border-red-500' :
-              'bg-blue-50 border-l-4 border-blue-500'
-            }`}
-          >
-            <div className="font-semibold">{result.step}</div>
-            <div>{result.message}</div>
-            {result.details && (
-              <pre className="mt-2 p-2 bg-gray-800 text-white rounded text-sm overflow-x-auto">
-                {result.details}
-              </pre>
-            )}
-          </div>
-        ))}
-        {results.length === 0 && (
-          <div className="flex items-center justify-center p-4">
-            <p>Click &quot;Start Tests&quot; to begin testing</p>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-4 text-sm text-gray-600">
-        <p>Check the browser console for detailed test results.</p>
-      </div>
+      {result && (
+        <div className="mt-4">
+          <h2 className="text-xl font-semibold mb-2">API Result:</h2>
+          <pre className="bg-gray-100 p-4 rounded overflow-auto">
+            {JSON.stringify(result, null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 } 

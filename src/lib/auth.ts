@@ -1,64 +1,37 @@
 import NextAuth from "next-auth";
-import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-export const authOptions = {
+// Create a new auth configuration for the lib file
+const authConfig = {
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         if (credentials?.email && credentials?.password) {
-          // For testing purposes, accept any valid email/password
-          return {
-            id: "1",
-            email: credentials.email as string,
-            name: "Test User"
-          };
+          return { 
+            id: "1", 
+            name: "Test User", 
+            email: credentials.email as string 
+          }
         }
-        return null;
+        return null
       }
     })
   ],
   pages: {
-    signIn: "/auth/login",
-    error: "/auth/error"
+    signIn: '/auth/login',
   },
-  callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
-      
-      if (isOnDashboard) {
-        if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
-      }
-      
-      return true;
-    },
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-      }
-      return session;
-    }
-  },
-  trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
-} satisfies NextAuthConfig;
+  secret: process.env.NEXTAUTH_SECRET
+};
 
-export const { auth, signIn, signOut, handlers } = NextAuth(authOptions);
+// Export authentication utilities
+export const { auth, signIn, signOut, handlers } = NextAuth(authConfig);
 
+// Helper function to get the current user
 export async function getCurrentUser() {
   try {
     const session = await auth();
@@ -67,4 +40,4 @@ export async function getCurrentUser() {
     console.error('Error getting current user:', error);
     return null;
   }
-}
+} 
