@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { DashboardNav } from '@/components/dashboard/nav';
-import { LogoutButton } from '@/components/auth/logout-button';
+import LogoutButton from '@/components/auth/logout-button';
 
 export default async function DashboardLayout({
   children,
