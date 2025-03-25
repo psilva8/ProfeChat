@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "npm run start-flask & next dev",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "next start -p 3020",
     "lint": "next lint",
     "start-flask": "cd api/python && python3 -m pip install -r requirements.txt && python3 app.py"
   },
