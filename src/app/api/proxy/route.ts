@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const FLASK_PORT = process.env.FLASK_PORT || 5000;
+const FLASK_PORT = process.env.FLASK_PORT || 5336;
 const FLASK_URL = `http://localhost:${FLASK_PORT}`;
 
 // Add logging to help debug the proxy
