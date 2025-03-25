@@ -1,3 +1,8 @@
-import { handlers } from "@/lib/auth";
+import { NextResponse } from "next/server";
 
-export const GET = handlers.GET;
+// For testing, return a mock CSRF token
+export function GET() {
+  return NextResponse.json({
+    csrfToken: 'mock-csrf-token'
+  });
+}

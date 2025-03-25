@@ -20,3 +20,4 @@ echo "Got authentication cookie."
 echo "Fetching lesson plans..."
 curl -v "http://localhost:3008/api/lesson-plans" \
   -H "Cookie: $COOKIE" | jq .
+
