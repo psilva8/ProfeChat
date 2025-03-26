@@ -1,54 +1,50 @@
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { auth } from '@/lib/auth';
 
-export const runtime = 'nodejs';
+export async function middleware(request: NextRequest) {
+  const session = await auth();
 
-// Middleware function to handle authentication
-export default auth((req) => {
-  // Define all public routes that don't require authentication
-  const isPublicRoute = 
-    req.nextUrl.pathname === '/' || 
-    req.nextUrl.pathname.startsWith('/_next') ||
-    req.nextUrl.pathname.startsWith('/public') ||
-    req.nextUrl.pathname.startsWith('/favicon.ico') ||
-    req.nextUrl.pathname.startsWith('/features') ||
-    req.nextUrl.pathname.startsWith('/pricing') ||
-    req.nextUrl.pathname.startsWith('/rubrics') ||
-    req.nextUrl.pathname.startsWith('/activities') ||
-    req.nextUrl.pathname.startsWith('/lesson-planner') ||
-    req.nextUrl.pathname.startsWith('/unit-planner') ||
-    req.nextUrl.pathname.startsWith('/auth') ||
-    req.nextUrl.pathname.startsWith('/apitest') ||
-    req.nextUrl.pathname.startsWith('/api/auth') ||
-    req.nextUrl.pathname.startsWith('/api/test-auth') ||
-    req.nextUrl.pathname.startsWith('/api/test-create');
+  // Define public routes that don't require authentication
+  const publicRoutes = [
+    '/',
+    '/auth/login',
+    '/auth/register',
+    '/features',
+    '/pricing',
+    '/api/auth',
+  ];
 
-  if (isPublicRoute) {
-    return NextResponse.next();
-  }
+  // Check if the current path is a public route
+  const isPublicRoute = publicRoutes.some(route => 
+    request.nextUrl.pathname.startsWith(route)
+  );
 
-  // For dashboard and other protected routes
-  const isLoggedIn = !!req.auth;
-  const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
-  const isProtectedApiRoute = req.nextUrl.pathname.startsWith('/api/') && !req.nextUrl.pathname.startsWith('/api/auth');
+  // Check if the current path is a protected API route
+  const isProtectedApiRoute = request.nextUrl.pathname.startsWith('/api/') && 
+    !request.nextUrl.pathname.startsWith('/api/auth');
 
-  // Redirect to login if not logged in and trying to access protected routes
-  if ((isDashboardRoute || isProtectedApiRoute) && !isLoggedIn) {
-    // For API routes, return an unauthorized response
+  // If the user is not authenticated and trying to access a protected route
+  if (!session && !isPublicRoute) {
+    // For API routes, return 401
     if (isProtectedApiRoute) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { 'content-type': 'application/json' } }
+      );
     }
-    
-    // For dashboard routes, redirect to login
-    const redirectUrl = new URL('/auth/login', req.nextUrl);
-    redirectUrl.searchParams.set('callbackUrl', req.nextUrl.pathname);
-    return Response.redirect(redirectUrl);
+
+    // For other protected routes, redirect to login
+    const loginUrl = new URL('/auth/login', request.url);
+    loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
+
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-});
+}
 
-// Configure middleware matcher
+// Configure which routes to run middleware on
 export const config = {
   matcher: [
     /*
@@ -56,7 +52,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public (public files)
+     * - public folder
      */
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],

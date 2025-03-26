@@ -12,41 +12,44 @@ const authConfig: NextAuthConfig = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        // For development, accept any credentials
         if (credentials?.email && credentials?.password) {
-          // For demo purposes, return a mock user
-          return { 
-            id: "1", 
-            name: "Test User", 
-            email: credentials.email as string 
-          }
+          return {
+            id: "1",
+            name: "Test User",
+            email: credentials.email as string,
+          };
         }
-        return null
+        return null;
       }
     })
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: '/auth/login',
-    signOut: '/',
-    error: '/auth/error',
   },
   callbacks: {
-    // Add user ID to session
-    session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
       }
       return session;
-    },
+    }
   },
-  secret: process.env.NEXTAUTH_SECRET
+  debug: process.env.NODE_ENV === 'development',
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 // Export the NextAuth instance with handlers
-export const { auth, signIn, signOut, handlers } = NextAuth(authConfig);
+export const { auth, signIn, signOut } = NextAuth(authConfig);
 
 // Helper function to get the current user
 export async function getCurrentUser() {

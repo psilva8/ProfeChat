@@ -3,21 +3,19 @@ import { PrismaClient } from '@prisma/client';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
-function createPrismaClient() {
-  return new PrismaClient({
-    log: ['error', 'warn'],
-    errorFormat: 'pretty',
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const db =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ['query'],
   });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = db;
 }
-
-// For development, we want to reuse the same instance
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
-
-if (!globalForPrisma.prisma) {
-  globalForPrisma.prisma = createPrismaClient();
-}
-
-export const db = globalForPrisma.prisma;
 
 // Test the connection
 async function testConnection() {

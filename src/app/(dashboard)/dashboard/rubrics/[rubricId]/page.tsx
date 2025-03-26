@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { notFound } from 'next/navigation';
 
 interface RubricCriterion {
   name: string;
@@ -21,25 +21,47 @@ interface RubricContent {
   };
 }
 
-export default async function RubricPage({
-  params,
-}: {
-  params: { rubricId: string };
-}) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return notFound();
+export default function RubricPage({ params }: { params: { rubricId: string } }) {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [rubric, setRubric] = useState<any>(null);
+
+  useEffect(() => {
+    const loadRubric = async () => {
+      try {
+        const session = await auth();
+        if (!session?.user?.id) {
+          router.push('/auth/login?callbackUrl=/dashboard/rubrics/' + params.rubricId);
+          return;
+        }
+
+        const rubricData = await db.rubric.findUnique({
+          where: { id: params.rubricId },
+        });
+
+        if (!rubricData) {
+          router.push('/dashboard/rubrics');
+          return;
+        }
+
+        setRubric(rubricData);
+      } catch (error) {
+        console.error('Error loading rubric:', error);
+        router.push('/dashboard/rubrics');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRubric();
+  }, [router, params.rubricId]);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
 
-  const rubric = await db.rubric.findUnique({
-    where: {
-      id: params.rubricId,
-      userId: session.user.id,
-    },
-  });
-
   if (!rubric) {
-    return notFound();
+    return <div>Rubric not found</div>;
   }
 
   const content: RubricContent = JSON.parse(rubric.content);

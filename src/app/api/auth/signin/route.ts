@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { signIn } from '@/lib/auth';
 
 // Return HTML for GET requests
 export function GET() {
@@ -6,18 +7,24 @@ export function GET() {
 }
 
 // Handle POST requests for signin
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
-    // Mock successful signin
-    return NextResponse.json({
-      url: '/dashboard',
-      ok: true
+    const result = await signIn('credentials', {
+      redirect: false,
     });
+
+    if (!result?.ok) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
-      { error: 'Authentication failed' },
-      { status: 401 }
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }
