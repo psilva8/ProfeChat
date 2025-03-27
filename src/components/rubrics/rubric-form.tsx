@@ -75,7 +75,7 @@ export function RubricForm() {
       const data = await response.json();
       toast.success('Rúbrica generada exitosamente');
       router.push(`/dashboard/rubrics/${data.id}`);
-    } catch (error) {
+    } catch {
       toast.error('Ocurrió un error al generar la rúbrica');
     } finally {
       setIsLoading(false);

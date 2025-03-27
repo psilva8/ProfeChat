@@ -56,7 +56,7 @@ export function LessonPlanForm() {
       const data = await response.json();
       toast.success('Plan de lección generado exitosamente');
       router.push(`/dashboard/lesson-plans/${data.id}`);
-    } catch (error) {
+    } catch {
       toast.error('Ocurrió un error al generar el plan de lección');
     } finally {
       setIsLoading(false);

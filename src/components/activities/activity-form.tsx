@@ -84,7 +84,7 @@ export function ActivityForm() {
       const data = await response.json();
       toast.success('Actividad generada exitosamente');
       router.push(`/dashboard/activities/${data.id}`);
-    } catch (error) {
+    } catch {
       toast.error('Ocurrió un error al generar la actividad');
     } finally {
       setIsLoading(false);

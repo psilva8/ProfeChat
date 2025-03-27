@@ -34,7 +34,7 @@ export default function UnitPlanner() {
       } else {
         toast.error(data.error || 'Error al generar el plan de unidad');
       }
-    } catch (error) {
+    } catch {
       toast.error('Ocurrió un error al generar el plan de unidad');
     } finally {
       setLoading(false);

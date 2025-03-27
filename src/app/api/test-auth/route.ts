@@ -4,6 +4,10 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+interface TestResponse {
+  message: string;
+}
+
+export async function GET(): Promise<NextResponse<TestResponse>> {
   return NextResponse.json({ message: 'Test auth endpoint' });
 } 
