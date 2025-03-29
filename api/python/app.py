@@ -8,6 +8,7 @@ import sys
 import json
 from typing import Dict, Any, Optional
 import socket
+import openai
 
 # Configure logging
 logging.basicConfig(
@@ -275,12 +276,15 @@ def generate_activities():
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
+    # Validate OpenAI API key
     try:
-        default_port = int(os.getenv('PORT', 5328))
-        port = get_available_port(default_port)
-        host = os.getenv('HOST', '0.0.0.0')
-        logger.info(f"Starting Flask server on {host}:{port}")
-        app.run(host=host, port=port, debug=True)
+        openai.models.list()
+        logger.info("OpenAI API key validated successfully")
     except Exception as e:
-        logger.error(f"Failed to start server: {str(e)}")
-        sys.exit(1) 
+        logger.error(f"Failed to validate OpenAI API key: {str(e)}")
+        exit(1)
+
+    # Start server on fixed port
+    port = 5000  # Fixed port instead of dynamic port finding
+    logger.info(f"Starting Flask server on 0.0.0.0:{port}")
+    app.run(host='0.0.0.0', port=port, debug=True) 

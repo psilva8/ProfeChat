@@ -1,63 +1,77 @@
-import NextAuth from "next-auth";
+import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import type { NextAuthConfig } from "next-auth";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "@/lib/prisma";
+import { compare } from "bcryptjs";
+import { User } from "@prisma/client";
 
-// Define our auth config with more explicit types
-const authConfig: NextAuthConfig = {
-  providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        // For development, accept any credentials
-        if (credentials?.email && credentials?.password) {
-          return {
-            id: "1",
-            name: "Test User",
-            email: credentials.email as string,
-          };
-        }
-        return null;
-      }
-    })
-  ],
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
   },
   pages: {
-    signIn: '/auth/login',
+    signIn: "/auth/login",
+    signOut: "/auth/logout",
+    error: "/auth/error",
   },
+  providers: [
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Invalid credentials");
+        }
+
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email
+          }
+        });
+
+        if (!user) {
+          throw new Error("Invalid credentials");
+        }
+
+        const isPasswordValid = await compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isPasswordValid) {
+          throw new Error("Invalid credentials");
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        };
+      }
+    })
+  ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        return {
+          ...token,
+          id: user.id,
+        };
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-      }
-      return session;
-    }
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.id as string,
+        },
+      };
+    },
   },
-  debug: process.env.NODE_ENV === 'development',
-  secret: process.env.NEXTAUTH_SECRET,
-};
-
-// Export the NextAuth instance with handlers
-export const { auth, signIn, signOut } = NextAuth(authConfig);
-
-// Helper function to get the current user
-export async function getCurrentUser() {
-  try {
-    const session = await auth();
-    return session?.user;
-  } catch (error) {
-    console.error('Error getting current user:', error);
-    return null;
-  }
-} 
+}; 

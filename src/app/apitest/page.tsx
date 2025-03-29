@@ -3,104 +3,98 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 
-export default function ApiTestPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState('');
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  data?: unknown;
+}
 
-  const testLogin = async () => {
-    setIsLoading(true);
-    setError('');
-    setResult(null);
-    
+interface TestResult {
+  endpoint: string;
+  status: number;
+  response: ApiResponse;
+}
+
+export default function ApiTestPage() {
+  const [results, setResults] = useState<TestResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const runTest = async (endpoint: string, method: string = 'GET', body?: unknown): Promise<TestResult> => {
     try {
-      // Step 1: Login
-      const loginResult = await signIn('credentials', {
-        email: 'test@example.com',
-        password: 'password123',
-        redirect: false,
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: body ? JSON.stringify(body) : undefined,
       });
 
-      if (loginResult?.error) {
-        setError(`Login error: ${loginResult.error}`);
-        return;
-      }
-
-      // Step 2: Fetch lesson plans
-      const response = await fetch('/api/lesson-plans');
-      
-      if (!response.ok) {
-        setError(`API error: ${response.status} ${response.statusText}`);
-        return;
-      }
-      
       const data = await response.json();
-      setResult(data);
-    } catch (err: any) {
-      setError(`Error: ${err.message}`);
-    } finally {
-      setIsLoading(false);
+      return {
+        endpoint,
+        status: response.status,
+        response: data,
+      };
+    } catch (error) {
+      return {
+        endpoint,
+        status: 500,
+        response: {
+          success: false,
+          message: 'Request failed',
+        },
+      };
     }
   };
 
-  const fetchTestEndpoint = async () => {
+  const runAllTests = async () => {
     setIsLoading(true);
-    setError('');
-    setResult(null);
-    
-    try {
-      // Fetch from our test endpoint
-      const response = await fetch('/api/test-auth');
-      
-      if (!response.ok) {
-        setError(`API error: ${response.status} ${response.statusText}`);
-        return;
-      }
-      
-      const data = await response.json();
-      setResult(data);
-    } catch (err: any) {
-      setError(`Error: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
+    const testResults: TestResult[] = [];
+
+    // Test login endpoint
+    const loginResult = await runTest('/api/auth/signin', 'POST', {
+      email: 'test@example.com',
+      password: 'password123',
+    });
+    testResults.push(loginResult);
+
+    // Test registration endpoint
+    const registrationResult = await runTest('/api/auth/register', 'POST', {
+      name: 'Test User',
+      email: 'test@example.com',
+      password: 'password123',
+    });
+    testResults.push(registrationResult);
+
+    setResults(testResults);
+    setIsLoading(false);
   };
 
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-4">API Test Page</h1>
-      <div className="flex space-x-4 mb-4">
-        <button 
-          onClick={testLogin}
-          disabled={isLoading}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          {isLoading ? 'Testing...' : 'Test Lesson Plans API (Auth)'}
-        </button>
-        
-        <button 
-          onClick={fetchTestEndpoint}
-          disabled={isLoading}
-          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-        >
-          {isLoading ? 'Testing...' : 'Fetch Test Endpoint (Direct)'}
-        </button>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-4">API Tests</h1>
+      <button
+        onClick={runAllTests}
+        disabled={isLoading}
+        className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
+      >
+        {isLoading ? 'Running Tests...' : 'Run Tests'}
+      </button>
+
+      <div className="mt-8 space-y-4">
+        {results.map((result, index) => (
+          <div
+            key={index}
+            className={`p-4 rounded-lg ${
+              result.status === 200 ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+            }`}
+          >
+            <h3 className="font-semibold">{result.endpoint}</h3>
+            <p>Status: {result.status}</p>
+            <p>Response: {JSON.stringify(result.response, null, 2)}</p>
+          </div>
+        ))}
       </div>
-
-      {error && (
-        <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      {result && (
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold mb-2">API Result:</h2>
-          <pre className="bg-gray-100 p-4 rounded overflow-auto">
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
-      )}
     </div>
   );
 } 

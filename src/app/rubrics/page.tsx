@@ -2,10 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+
+interface Rubric {
+  id: string;
+  title: string;
+  grade: string;
+  subject: string;
+  criteria: Array<{
+    name: string;
+    description: string;
+  }>;
+}
 
 export default function RubricsPage() {
-  const [rubrics, setRubrics] = useState([]);
+  const [rubrics, setRubrics] = useState<Rubric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchRubrics = async () => {
@@ -16,8 +29,8 @@ export default function RubricsPage() {
         }
         const data = await response.json();
         setRubrics(data);
-      } catch {
-        toast.error('Failed to load rubrics');
+      } catch (error) {
+        toast.error('Error loading rubrics');
       } finally {
         setIsLoading(false);
       }
@@ -26,18 +39,36 @@ export default function RubricsPage() {
     fetchRubrics();
   }, []);
 
+  const handleRubricClick = (rubric: Rubric) => {
+    router.push(`/dashboard/rubrics/${rubric.id}`);
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-4">Rubrics</h1>
       <div className="grid gap-4">
-        {rubrics.map((rubric: any) => (
+        {rubrics.map((rubric: Rubric) => (
           <div key={rubric.id} className="border p-4 rounded">
             <h2 className="text-xl font-semibold">{rubric.title}</h2>
-            <p className="text-gray-600">{rubric.description}</p>
+            <p className="text-gray-600">{rubric.grade} - {rubric.subject}</p>
+            <div className="mt-2">
+              <h3 className="font-medium">Criteria:</h3>
+              <ul className="list-disc list-inside">
+                {rubric.criteria.map((criterion: { name: string }, index: number) => (
+                  <li key={index}>{criterion.name}</li>
+                ))}
+              </ul>
+            </div>
+            <button
+              onClick={() => handleRubricClick(rubric)}
+              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            >
+              View Details
+            </button>
           </div>
         ))}
       </div>
