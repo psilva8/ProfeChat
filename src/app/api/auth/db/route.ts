@@ -20,13 +20,13 @@ export async function POST(request: Request) {
         where: { email }
       });
 
-      if (!user || !user?.hashedPassword) {
+      if (!user || !user?.password) {
         return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
       }
 
       const isCorrectPassword = await bcrypt.compare(
         password,
-        user.hashedPassword
+        user.password
       );
 
       if (!isCorrectPassword) {
