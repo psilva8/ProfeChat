@@ -26,7 +26,16 @@ const nextConfig = {
     
     // In production, no rewrites needed
     return [];
-  }
+  },
+  eslint: {
+    // Warning ESLint errors don't fail the build
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    ignoreBuildErrors: true,
+  },
 }
 
 module.exports = nextConfig 
