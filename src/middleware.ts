@@ -12,12 +12,17 @@ export default async function middleware(request: NextRequest) {
   );
 
   // Get the authentication token
-  const token = await getToken({ req: request });
+  const token = await getToken({ 
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET
+  });
+  
   const isAuthenticated = !!token;
 
   // If it's a protected path and not authenticated, redirect to login
   if (isProtectedPath && !isAuthenticated) {
-    const url = new URL('/(client)/auth/login', request.url);
+    const url = new URL('/auth/login', request.url);
+    url.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(url);
   }
 

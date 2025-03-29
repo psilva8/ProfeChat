@@ -26,13 +26,14 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError(result.error);
+        console.error('Login error:', result.error);
       } else {
         router.push('/dashboard');
         router.refresh();
       }
     } catch (err) {
       setError('An unexpected error occurred');
-      console.error(err);
+      console.error('Login exception:', err);
     } finally {
       setLoading(false);
     }
