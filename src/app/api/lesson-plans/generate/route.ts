@@ -3,8 +3,31 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-const FLASK_PORT = process.env.FLASK_PORT || 5336;
-const FLASK_URL = `http://localhost:${FLASK_PORT}`;
+const FLASK_BASE_PORT = parseInt(process.env.FLASK_PORT || '5336');
+const MAX_PORT_ATTEMPTS = 5;
+
+// Function to try multiple ports for Flask server
+async function fetchWithPortFallback(path: string, options: RequestInit) {
+  let lastError;
+  
+  for (let portOffset = 0; portOffset < MAX_PORT_ATTEMPTS; portOffset++) {
+    const currentPort = FLASK_BASE_PORT + portOffset;
+    const url = `http://localhost:${currentPort}${path}`;
+    
+    try {
+      console.log(`Attempting to connect to Flask server at ${url}`);
+      const response = await fetch(url, options);
+      if (response.ok) {
+        return response;
+      }
+    } catch (error) {
+      console.error(`Failed to connect to Flask server at port ${currentPort}:`, error);
+      lastError = error;
+    }
+  }
+  
+  throw lastError || new Error('Failed to connect to Flask server on any port');
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,9 +40,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    console.log('Generating lesson plan with data:', body);
     
-    // Call Flask backend to generate lesson plan
-    const response = await fetch(`${FLASK_URL}/api/generate-lesson`, {
+    // Call Flask backend to generate lesson plan with port fallback
+    const response = await fetchWithPortFallback('/api/generate-lesson', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -27,15 +51,13 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to generate lesson plan');
-    }
-
     const data = await response.json();
     
     if (!data.success) {
       throw new Error(data.error || 'Failed to generate lesson plan');
     }
+
+    console.log('Successfully generated lesson plan from Flask API');
 
     // Save the lesson plan to the database
     const lessonPlan = await db.lessonPlan.create({
@@ -49,6 +71,8 @@ export async function POST(req: NextRequest) {
         content: data.lesson_plan,
       },
     });
+
+    console.log('Saved lesson plan to database with ID:', lessonPlan.id);
 
     return NextResponse.json({
       success: true,

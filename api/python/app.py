@@ -9,14 +9,13 @@ import json
 from typing import Dict, Any, Optional
 import socket
 import openai
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
+    handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
 
@@ -83,82 +82,74 @@ def validate_request_data(data: Dict[str, Any], required_fields: list) -> Option
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    try:
-        if not api_key or api_key == 'your-api-key-here':
-            return jsonify({
-                "status": "unhealthy",
-                "error": "OpenAI API key not configured. Please set a valid API key in .env file"
-            }), 500
-
-        # Test OpenAI connection
-        client.models.list()
-        return jsonify({"status": "healthy", "message": "API is operational"}), 200
-    except AuthenticationError as e:
-        logger.error(f"OpenAI API key authentication failed: {str(e)}")
-        return jsonify({
-            "status": "unhealthy",
-            "error": "Invalid OpenAI API key. Please check your configuration."
-        }), 401
-    except OpenAIError as e:
-        logger.error(f"OpenAI API error: {str(e)}")
-        return jsonify({
-            "status": "unhealthy",
-            "error": f"OpenAI API error: {str(e)}"
-        }), 500
-    except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({
-            "status": "unhealthy",
-            "error": "Internal server error"
-        }), 500
+    """Health check endpoint to verify the server is running correctly"""
+    logger.info("Health check endpoint called")
+    return jsonify({
+        "status": "healthy",
+        "message": "API is operational",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat()
+    })
 
 @app.route('/api/generate-lesson', methods=['POST'])
 def generate_lesson():
+    """Generate a lesson plan based on the provided parameters"""
     try:
-        data = request.get_json()
+        data = request.json
+        logger.info(f"Received lesson plan generation request: {data}")
         
-        # Validate required fields
-        required_fields = ['subject', 'grade', 'topic']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({
-                    "success": False,
-                    "error": f"Missing required field: {field}"
-                }), 400
-
-        # Create prompt for lesson plan
-        prompt = f"Create a detailed lesson plan for {data['subject']} grade {data['grade']} about {data['topic']}."
-        if 'objectives' in data:
-            prompt += f"\nLearning objectives: {data['objectives']}"
-        if 'duration' in data:
-            prompt += f"\nLesson duration: {data['duration']}"
-
+        # Extract parameters
+        subject = data.get('subject', '')
+        grade = data.get('grade', '')
+        topic = data.get('topic', '')
+        duration = data.get('duration', 60)
+        objectives = data.get('objectives', '')
+        
+        # Create prompt for OpenAI
+        prompt = f"""
+        Create a detailed lesson plan for the following:
+        Subject: {subject}
+        Grade: {grade}
+        Topic: {topic}
+        Duration: {duration} minutes
+        Learning Objectives: {objectives}
+        
+        The lesson plan should include:
+        1. Introduction/warm-up activity
+        2. Main content/teaching activities
+        3. Practice activities
+        4. Assessment
+        5. Closure
+        6. Materials needed
+        
+        Please structure it in a clear, organized format that a teacher can easily follow.
+        """
+        
         # Call OpenAI API
-        try:
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a professional teacher creating a detailed lesson plan."},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-
-            lesson_plan = response.choices[0].message.content
-            return jsonify({
-                "success": True,
-                "lesson_plan": lesson_plan
-            })
-        except OpenAIError as e:
-            logger.error(f"OpenAI API error: {str(e)}")
-            return jsonify({
-                "success": False,
-                "error": f"Error with OpenAI API: {str(e)}"
-            }), 500
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an expert curriculum designer and educator."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1500
+        )
+        
+        # Extract and return the lesson plan
+        lesson_plan = response.choices[0].message.content
+        logger.info(f"Generated lesson plan successfully")
+        
+        return jsonify({
+            "success": True,
+            "lesson_plan": lesson_plan
+        })
+    
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"Error generating lesson plan: {str(e)}")
         return jsonify({
             "success": False,
-            "error": "Internal server error"
+            "error": str(e)
         }), 500
 
 @app.route('/api/generate-rubric', methods=['POST'])
@@ -285,6 +276,19 @@ if __name__ == '__main__':
         exit(1)
 
     # Get port from environment variable with fallback to 5336
-    port = int(os.getenv('FLASK_PORT', 5336))
-    logger.info(f"Starting Flask server on 0.0.0.0:{port}")
-    app.run(host='0.0.0.0', port=port, debug=True) 
+    base_port = int(os.getenv('FLASK_PORT', 5336))
+    port = base_port
+    max_port_attempts = 5
+    
+    for attempt in range(max_port_attempts):
+        try:
+            logger.info(f"Attempting to start Flask server on 0.0.0.0:{port}")
+            app.run(host='0.0.0.0', port=port, debug=True)
+            break
+        except OSError as e:
+            if "Address already in use" in str(e) and attempt < max_port_attempts - 1:
+                logger.warning(f"Port {port} is already in use, trying port {port + 1}")
+                port += 1
+            else:
+                logger.error(f"Failed to start Flask server: {str(e)}")
+                exit(1) 
