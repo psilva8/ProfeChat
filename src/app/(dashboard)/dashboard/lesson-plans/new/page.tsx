@@ -23,6 +23,7 @@ export default function NewLessonPlanPage() {
     };
 
     try {
+      console.log('Sending data to generate lesson plan:', data);
       const response = await fetch('/api/lesson-plans/generate', {
         method: 'POST',
         headers: {
@@ -32,12 +33,15 @@ export default function NewLessonPlanPage() {
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error('Failed to generate lesson plan:', response.status, errorData);
         throw new Error('Failed to generate lesson plan');
       }
 
       const result = await response.json();
       router.push(`/dashboard/lesson-plans/${result.id}`);
     } catch (err) {
+      console.error('Error generating lesson plan:', err);
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
@@ -46,7 +50,7 @@ export default function NewLessonPlanPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Crear Plan de Lección</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Create Lesson Plan</h1>
       
       {error && (
         <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6">
@@ -57,7 +61,7 @@ export default function NewLessonPlanPage() {
       <form onSubmit={onSubmit} className="space-y-6">
         <div>
           <label htmlFor="subject" className="block text-sm font-medium text-gray-700">
-            Asignatura
+            Subject
           </label>
           <select
             id="subject"
@@ -65,17 +69,17 @@ export default function NewLessonPlanPage() {
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500"
           >
-            <option value="">Seleccionar asignatura</option>
-            <option value="matematicas">Matemáticas</option>
-            <option value="lenguaje">Lenguaje y Comunicación</option>
-            <option value="ciencias">Ciencias Naturales</option>
-            <option value="historia">Historia y Ciencias Sociales</option>
+            <option value="">Select subject</option>
+            <option value="mathematics">Mathematics</option>
+            <option value="language">Language Arts</option>
+            <option value="science">Science</option>
+            <option value="history">History & Social Studies</option>
           </select>
         </div>
 
         <div>
           <label htmlFor="grade" className="block text-sm font-medium text-gray-700">
-            Grado
+            Grade
           </label>
           <select
             id="grade"
@@ -83,19 +87,19 @@ export default function NewLessonPlanPage() {
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500"
           >
-            <option value="">Seleccionar grado</option>
-            <option value="1">1° Básico</option>
-            <option value="2">2° Básico</option>
-            <option value="3">3° Básico</option>
-            <option value="4">4° Básico</option>
-            <option value="5">5° Básico</option>
-            <option value="6">6° Básico</option>
+            <option value="">Select grade</option>
+            <option value="1">Grade 1</option>
+            <option value="2">Grade 2</option>
+            <option value="3">Grade 3</option>
+            <option value="4">Grade 4</option>
+            <option value="5">Grade 5</option>
+            <option value="6">Grade 6</option>
           </select>
         </div>
 
         <div>
           <label htmlFor="topic" className="block text-sm font-medium text-gray-700">
-            Tema
+            Topic
           </label>
           <input
             type="text"
@@ -103,13 +107,13 @@ export default function NewLessonPlanPage() {
             name="topic"
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500"
-            placeholder="Ej: Multiplicación de fracciones"
+            placeholder="E.g.: Multiplication of fractions"
           />
         </div>
 
         <div>
           <label htmlFor="objectives" className="block text-sm font-medium text-gray-700">
-            Objetivos de Aprendizaje
+            Learning Objectives
           </label>
           <textarea
             id="objectives"
@@ -117,13 +121,13 @@ export default function NewLessonPlanPage() {
             rows={3}
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500"
-            placeholder="Describe los objetivos principales de la lección"
+            placeholder="Describe the main objectives of the lesson"
           />
         </div>
 
         <div>
           <label htmlFor="duration" className="block text-sm font-medium text-gray-700">
-            Duración (minutos)
+            Duration (minutes)
           </label>
           <input
             type="number"
@@ -143,7 +147,7 @@ export default function NewLessonPlanPage() {
             isLoading ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
-          {isLoading ? 'Generando...' : 'Generar Plan de Lección'}
+          {isLoading ? 'Generating...' : 'Generate Lesson Plan'}
         </button>
       </form>
     </div>

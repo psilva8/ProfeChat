@@ -36,6 +36,7 @@ export default function LessonPlanPage() {
         const data = await response.json();
         setLessonPlan(data);
       } catch (err) {
+        console.error('Error fetching lesson plan:', err);
         setError(err instanceof Error ? err.message : 'Error loading lesson plan');
       } finally {
         setIsLoading(false);
@@ -81,25 +82,25 @@ export default function LessonPlanPage() {
             {lessonPlan.topic}
           </h3>
           <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            {lessonPlan.subject} • {lessonPlan.grade}° Grado • {lessonPlan.duration} minutos
+            {lessonPlan.subject} • Grade {lessonPlan.grade} • {lessonPlan.duration} minutes
           </p>
         </div>
         <div className="border-t border-gray-200">
           <dl>
             <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Objetivos de Aprendizaje</dt>
+              <dt className="text-sm font-medium text-gray-500">Learning Objectives</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 {lessonPlan.objectives}
               </dd>
             </div>
             <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Contenido</dt>
+              <dt className="text-sm font-medium text-gray-500">Content</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 whitespace-pre-wrap">
                 {lessonPlan.content}
               </dd>
             </div>
             <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Fecha de Creación</dt>
+              <dt className="text-sm font-medium text-gray-500">Created On</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 {new Date(lessonPlan.createdAt).toLocaleDateString()}
               </dd>

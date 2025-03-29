@@ -5,19 +5,19 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 const gradeOptions = [
-  { value: '1', label: '1° Primaria' },
-  { value: '2', label: '2° Primaria' },
-  { value: '3', label: '3° Primaria' },
-  { value: '4', label: '4° Primaria' },
-  { value: '5', label: '5° Primaria' },
-  { value: '6', label: '6° Primaria' },
+  { value: '1', label: 'Grade 1' },
+  { value: '2', label: 'Grade 2' },
+  { value: '3', label: 'Grade 3' },
+  { value: '4', label: 'Grade 4' },
+  { value: '5', label: 'Grade 5' },
+  { value: '6', label: 'Grade 6' },
 ];
 
 const subjectOptions = [
-  { value: 'matematicas', label: 'Matemáticas' },
-  { value: 'comunicacion', label: 'Comunicación' },
-  { value: 'ciencias', label: 'Ciencias' },
-  { value: 'sociales', label: 'Ciencias Sociales' },
+  { value: 'mathematics', label: 'Mathematics' },
+  { value: 'language', label: 'Language Arts' },
+  { value: 'science', label: 'Science' },
+  { value: 'social_studies', label: 'Social Studies' },
 ];
 
 export function LessonPlanForm() {
@@ -41,6 +41,7 @@ export function LessonPlanForm() {
     setIsLoading(true);
 
     try {
+      console.log('Submitting lesson plan data:', formData);
       const response = await fetch('/api/lesson-plans/generate', {
         method: 'POST',
         headers: {
@@ -50,14 +51,17 @@ export function LessonPlanForm() {
       });
 
       if (!response.ok) {
-        throw new Error('Error al generar el plan de lección');
+        const errorData = await response.json().catch(() => null);
+        console.error('Error generating lesson plan:', response.status, errorData);
+        throw new Error('Error generating lesson plan');
       }
 
       const data = await response.json();
-      toast.success('Plan de lección generado exitosamente');
+      toast.success('Lesson plan generated successfully');
       router.push(`/dashboard/lesson-plans/${data.id}`);
-    } catch {
-      toast.error('Ocurrió un error al generar el plan de lección');
+    } catch (error) {
+      console.error('Failed to generate lesson plan:', error);
+      toast.error('An error occurred while generating the lesson plan');
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +72,7 @@ export function LessonPlanForm() {
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
           <label htmlFor="grade" className="block text-sm font-medium text-gray-700">
-            Grado
+            Grade
           </label>
           <select
             id="grade"
@@ -78,7 +82,7 @@ export function LessonPlanForm() {
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm"
           >
-            <option value="">Selecciona un grado</option>
+            <option value="">Select a grade</option>
             {gradeOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -89,7 +93,7 @@ export function LessonPlanForm() {
 
         <div>
           <label htmlFor="subject" className="block text-sm font-medium text-gray-700">
-            Asignatura
+            Subject
           </label>
           <select
             id="subject"
@@ -99,7 +103,7 @@ export function LessonPlanForm() {
             required
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm"
           >
-            <option value="">Selecciona una asignatura</option>
+            <option value="">Select a subject</option>
             {subjectOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -110,7 +114,7 @@ export function LessonPlanForm() {
 
         <div className="sm:col-span-2">
           <label htmlFor="topic" className="block text-sm font-medium text-gray-700">
-            Tema
+            Topic
           </label>
           <input
             type="text"
@@ -119,14 +123,14 @@ export function LessonPlanForm() {
             value={formData.topic}
             onChange={handleChange}
             required
-            placeholder="Ej: Fracciones equivalentes"
+            placeholder="E.g: Equivalent fractions"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm"
           />
         </div>
 
         <div>
           <label htmlFor="duration" className="block text-sm font-medium text-gray-700">
-            Duración (minutos)
+            Duration (minutes)
           </label>
           <input
             type="number"
@@ -143,7 +147,7 @@ export function LessonPlanForm() {
 
         <div className="sm:col-span-2">
           <label htmlFor="objectives" className="block text-sm font-medium text-gray-700">
-            Objetivos de Aprendizaje
+            Learning Objectives
           </label>
           <textarea
             id="objectives"
@@ -151,7 +155,7 @@ export function LessonPlanForm() {
             value={formData.objectives}
             onChange={handleChange}
             rows={3}
-            placeholder="Describe los objetivos principales de la lección"
+            placeholder="Describe the main objectives of the lesson"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-500 focus:ring-accent-500 sm:text-sm"
           />
         </div>
@@ -163,7 +167,7 @@ export function LessonPlanForm() {
           disabled={isLoading}
           className="flex justify-center rounded-md border border-transparent bg-accent-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Generando...' : 'Generar Plan de Lección'}
+          {isLoading ? 'Generating...' : 'Generate Lesson Plan'}
         </button>
       </div>
     </form>

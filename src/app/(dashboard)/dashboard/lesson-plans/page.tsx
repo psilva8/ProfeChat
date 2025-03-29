@@ -28,6 +28,7 @@ export default function LessonPlansPage() {
         const data = await response.json();
         setLessonPlans(data);
       } catch (err) {
+        console.error('Error fetching lesson plans:', err);
         setError(err instanceof Error ? err.message : 'Error loading lesson plans');
       } finally {
         setIsLoading(false);
@@ -58,21 +59,21 @@ export default function LessonPlansPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Planes de Lección</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Lesson Plans</h1>
         <Link
           href="/dashboard/lesson-plans/new"
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500"
         >
           <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-          Nuevo Plan
+          New Plan
         </Link>
       </div>
 
       {lessonPlans.length === 0 ? (
         <div className="text-center py-12">
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No hay planes de lección</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No lesson plans found</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Comienza creando un nuevo plan de lección.
+            Start by creating a new lesson plan.
           </p>
           <div className="mt-6">
             <Link
@@ -80,7 +81,7 @@ export default function LessonPlansPage() {
               className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500"
             >
               <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-              Crear Plan de Lección
+              Create Lesson Plan
             </Link>
           </div>
         </div>
@@ -100,12 +101,12 @@ export default function LessonPlansPage() {
                           {plan.topic}
                         </p>
                         <p className="mt-1 flex items-center text-sm text-gray-500">
-                          {plan.subject} • {plan.grade}° Grado
+                          {plan.subject} • Grade {plan.grade}
                         </p>
                       </div>
                       <div className="ml-4 flex-shrink-0">
                         <p className="text-sm text-gray-500">
-                          {plan.duration} minutos
+                          {plan.duration} minutes
                         </p>
                         <p className="mt-1 text-sm text-gray-500">
                           {new Date(plan.createdAt).toLocaleDateString()}
