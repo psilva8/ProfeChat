@@ -174,7 +174,7 @@ export default function TestPage() {
             step: 'Login',
             status: 'success',
             message: 'Login failed as expected',
-            details: loginResult?.error
+            details: loginResult?.error || undefined
           });
           return true;
         } else {
