@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { signIn } from 'next-auth/react';
 
 // Return HTML for GET requests
 export function GET() {
@@ -7,14 +6,18 @@ export function GET() {
 }
 
 // Handle POST requests for signin
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    // Since this is a server component, we cannot directly use signIn from next-auth/react
-    // Instead, redirect to the NextAuth signin endpoint
-    return NextResponse.redirect('/api/auth/signin');
+    const body = await request.json();
+    
+    // Redirect to the built-in NextAuth signin with credentials
+    const url = new URL('/api/auth/[...nextauth]', request.url);
+    url.searchParams.append('callbackUrl', '/dashboard');
+    
+    return NextResponse.redirect(url);
   } catch (error) {
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Authentication error', message: 'There was a problem with the authentication process' },
       { status: 500 }
     );
   }
