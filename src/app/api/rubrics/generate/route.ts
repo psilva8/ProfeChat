@@ -1,7 +1,8 @@
-import { auth } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { openai } from '@/lib/openai';
 import { db } from '@/lib/db';
-import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const preferredRegion = 'home';
@@ -23,16 +24,22 @@ interface RubricResponse {
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
+    const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
     const { title, grade, subject, criteria } = body;
 
     if (!title || !grade || !subject || !criteria) {
-      return new NextResponse('Missing required fields', { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
     // Format criteria for the prompt
@@ -93,7 +100,10 @@ Formato de respuesta:
       generatedContent = JSON.parse(content);
     } catch (error) {
       console.error('[JSON_PARSE_ERROR]', error);
-      return new NextResponse('Invalid response format', { status: 500 });
+      return NextResponse.json(
+        { error: 'Invalid response format' },
+        { status: 500 }
+      );
     }
 
     // Save the rubric to the database
@@ -111,6 +121,9 @@ Formato de respuesta:
     return NextResponse.json(rubric);
   } catch (error) {
     console.error('[RUBRIC_GENERATION_ERROR]', error);
-    return new NextResponse('Internal Error', { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Error' },
+      { status: 500 }
+    );
   }
 } 

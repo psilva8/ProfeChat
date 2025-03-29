@@ -1,31 +1,30 @@
-import React from 'react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { auth } from '@/lib/auth';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import { db } from '@/lib/db';
 
 export default async function ActivitiesPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return null;
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    redirect('/auth/login');
   }
 
   const activities = await db.activity.findMany({
-    where: {
-      userId: session.user.id,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    where: { userId: session.user.id },
+    orderBy: { createdAt: 'desc' },
   });
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Mis Actividades</h1>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Actividades</h1>
         <Link
           href="/dashboard/activities/new"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500"
         >
+          <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
           Nueva Actividad
         </Link>
       </div>
@@ -34,13 +33,14 @@ export default async function ActivitiesPage() {
         <div className="text-center py-12">
           <h3 className="mt-2 text-sm font-medium text-gray-900">No hay actividades</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Comienza creando una nueva actividad para tus estudiantes.
+            Comienza creando una nueva actividad.
           </p>
           <div className="mt-6">
             <Link
               href="/dashboard/activities/new"
               className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500"
             >
+              <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
               Crear Actividad
             </Link>
           </div>
@@ -56,35 +56,20 @@ export default async function ActivitiesPage() {
                 >
                   <div className="px-4 py-4 sm:px-6">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-accent-600 truncate">
-                        {activity.title}
-                      </p>
-                      <div className="ml-2 flex-shrink-0 flex">
-                        <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          {activity.subject}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-accent-600 truncate">
+                          {activity.title}
+                        </p>
+                        <p className="mt-1 flex items-center text-sm text-gray-500">
+                          {activity.subject} • {activity.grade}° Grado • {activity.type}
                         </p>
                       </div>
-                    </div>
-                    <div className="mt-2 sm:flex sm:justify-between">
-                      <div className="sm:flex sm:space-x-4">
-                        <p className="flex items-center text-sm text-gray-500">
-                          Grado: {activity.grade}° Primaria
+                      <div className="ml-4 flex-shrink-0">
+                        <p className="text-sm text-gray-500">
+                          {activity.duration} minutos
                         </p>
-                        <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                          Tipo: {activity.type}
-                        </p>
-                        <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                          Duración: {activity.duration} min
-                        </p>
-                      </div>
-                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                        <p>
-                          Creada el{' '}
-                          {new Date(activity.createdAt).toLocaleDateString('es-ES', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
+                        <p className="mt-1 text-sm text-gray-500">
+                          {new Date(activity.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 // Force Node.js runtime
@@ -9,9 +10,12 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const lessonPlans = await db.lessonPlan.findMany({
@@ -26,6 +30,9 @@ export async function GET() {
     return NextResponse.json(lessonPlans);
   } catch (error) {
     console.error('Error fetching lesson plans:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 } 
