@@ -36,8 +36,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         id: user.id,
         name: user.name,
-        email: user.email,
-        image: user.image,
+        email: user.email
       });
     } catch (dbError) {
       console.error('Database operation error:', dbError);
