@@ -284,7 +284,7 @@ if __name__ == '__main__':
         logger.error(f"Failed to validate OpenAI API key: {str(e)}")
         exit(1)
 
-    # Start server on fixed port
-    port = 5000  # Fixed port instead of dynamic port finding
+    # Get port from environment variable with fallback to 5336
+    port = int(os.getenv('FLASK_PORT', 5336))
     logger.info(f"Starting Flask server on 0.0.0.0:{port}")
     app.run(host='0.0.0.0', port=port, debug=True) 
