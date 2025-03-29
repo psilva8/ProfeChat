@@ -40,8 +40,8 @@ export async function GET(req: NextRequest) {
       data: {
         name: "Test User",
         email: "test@example.com",
-        // Using a pre-hashed version of "password123" - this is ONLY for testing
-        password: "$2a$10$CwT4xzJeiOtPFcwV7F3JHu.MKNkdO6lep.S3lUiVww4aFrUEKScve", 
+        // Using a plain text password for testing - DO NOT USE THIS IN PRODUCTION
+        password: "test123", 
       },
     });
 

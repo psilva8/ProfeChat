@@ -15,7 +15,9 @@ from datetime import datetime
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -277,18 +279,18 @@ if __name__ == '__main__':
 
     # Get port from environment variable with fallback to 5336
     base_port = int(os.getenv('FLASK_PORT', 5336))
-    port = base_port
-    max_port_attempts = 5
-    
-    for attempt in range(max_port_attempts):
-        try:
-            logger.info(f"Attempting to start Flask server on 0.0.0.0:{port}")
-            app.run(host='0.0.0.0', port=port, debug=True)
-            break
-        except OSError as e:
-            if "Address already in use" in str(e) and attempt < max_port_attempts - 1:
-                logger.warning(f"Port {port} is already in use, trying port {port + 1}")
-                port += 1
-            else:
-                logger.error(f"Failed to start Flask server: {str(e)}")
-                exit(1) 
+    try:
+        port = get_available_port(base_port)
+        logger.info(f"Found available port: {port}")
+        
+        # Print the port to stdout for scripts that need to capture it
+        # This line is important for the start-flask.js script to detect the port
+        print(f"FLASK_SERVER_PORT={port}", flush=True)
+        sys.stdout.flush()
+        
+        # Start Flask server
+        logger.info(f"Starting Flask server on 0.0.0.0:{port}")
+        app.run(host='0.0.0.0', port=port, debug=True)
+    except Exception as e:
+        logger.error(f"Failed to start Flask server: {str(e)}")
+        exit(1) 

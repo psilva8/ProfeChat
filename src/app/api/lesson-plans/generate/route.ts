@@ -3,34 +3,86 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+// Define the Flask server address with fallback options
 const FLASK_BASE_PORT = parseInt(process.env.FLASK_PORT || '5336');
-const MAX_PORT_ATTEMPTS = 5;
+const FLASK_HOST = process.env.FLASK_HOST || 'localhost';
 
-// Function to try multiple ports for Flask server
-async function fetchWithPortFallback(path: string, options: RequestInit) {
-  let lastError;
+// Function to attempt connection on multiple Flask ports
+async function tryFlaskConnection(path: string, options: RequestInit) {
+  let ports = [];
   
-  for (let portOffset = 0; portOffset < MAX_PORT_ATTEMPTS; portOffset++) {
-    const currentPort = FLASK_BASE_PORT + portOffset;
-    const url = `http://localhost:${currentPort}${path}`;
+  // First try the environment variable port if available
+  const envPort = process.env.FLASK_SERVER_PORT ? parseInt(process.env.FLASK_SERVER_PORT) : null;
+  if (envPort) {
+    ports.push(envPort);
+  }
+  
+  // Then try reading from the .flask-port file if it exists
+  try {
+    // Use dynamic import to avoid Node.js API usage in the browser
+    const { readFileSync, existsSync } = await import('fs');
+    const { join } = await import('path');
     
+    const portFilePath = join(process.cwd(), '.flask-port');
+    if (existsSync(portFilePath)) {
+      const portFromFile = parseInt(readFileSync(portFilePath, 'utf8').trim());
+      if (!isNaN(portFromFile) && !ports.includes(portFromFile)) {
+        console.log(`Found Flask port ${portFromFile} from .flask-port file`);
+        ports.push(portFromFile);
+      }
+    }
+  } catch (error) {
+    console.error('Error reading port file:', error);
+    // Continue with other methods if file reading fails
+  }
+  
+  // Finally, add the range of default ports to try
+  const defaultPorts = [FLASK_BASE_PORT, FLASK_BASE_PORT + 1, FLASK_BASE_PORT + 2, FLASK_BASE_PORT + 3, FLASK_BASE_PORT + 4];
+  for (const port of defaultPorts) {
+    if (!ports.includes(port)) {
+      ports.push(port);
+    }
+  }
+  
+  let lastError = null;
+  
+  for (const port of ports) {
+    const url = `http://${FLASK_HOST}:${port}${path}`;
     try {
-      console.log(`Attempting to connect to Flask server at ${url}`);
-      const response = await fetch(url, options);
+      console.log(`Trying Flask connection on ${url}`);
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout per attempt
+      
+      const fetchOptions = {
+        ...options,
+        signal: controller.signal
+      };
+      
+      const response = await fetch(url, fetchOptions);
+      clearTimeout(timeoutId);
+      
       if (response.ok) {
+        console.log(`Successfully connected to Flask on port ${port}`);
         return response;
       }
+      
+      // If we get a response but it's not OK, save the status
+      lastError = new Error(`Flask server responded with status ${response.status}`);
     } catch (error) {
-      console.error(`Failed to connect to Flask server at port ${currentPort}:`, error);
+      console.error(`Failed to connect to Flask on port ${port}:`, error);
       lastError = error;
     }
   }
   
-  throw lastError || new Error('Failed to connect to Flask server on any port');
+  // If we've tried all ports and none succeeded, throw the last error
+  throw lastError || new Error('Could not connect to Flask server on any port');
 }
 
 export async function POST(req: NextRequest) {
   try {
+    // Get the user session to check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -40,20 +92,21 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    console.log('Generating lesson plan with data:', body);
+    console.log('Generating lesson plan with:', body);
     
-    // Call Flask backend to generate lesson plan with port fallback
-    const response = await fetchWithPortFallback('/api/generate-lesson', {
+    // Call Flask backend with multiple port attempts
+    const response = await tryFlaskConnection('/api/generate-lesson', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
 
     const data = await response.json();
     
     if (!data.success) {
+      console.error('Flask API returned error:', data.error);
       throw new Error(data.error || 'Failed to generate lesson plan');
     }
 
@@ -67,12 +120,10 @@ export async function POST(req: NextRequest) {
         subject: body.subject,
         topic: body.topic,
         duration: parseInt(body.duration),
-        objectives: body.objectives,
+        objectives: body.objectives || '',
         content: data.lesson_plan,
       },
     });
-
-    console.log('Saved lesson plan to database with ID:', lessonPlan.id);
 
     return NextResponse.json({
       success: true,
