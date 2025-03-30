@@ -21,10 +21,19 @@ export default function LessonPlansPage() {
   useEffect(() => {
     async function fetchLessonPlans() {
       try {
-        const response = await fetch('/api/lesson-plans');
+        const response = await fetch('/api/lesson-plans', {
+          // Make sure we include credentials
+          credentials: 'include',
+          // Add appropriate cache headers
+          cache: 'no-store'
+        });
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch lesson plans');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Fetch response error:', response.status, errorData);
+          throw new Error(errorData.error || `Failed to fetch lesson plans: ${response.status}`);
         }
+        
         const data = await response.json();
         setLessonPlans(data);
       } catch (err) {
@@ -50,7 +59,11 @@ export default function LessonPlansPage() {
     return (
       <div className="p-4">
         <div className="bg-red-50 text-red-600 p-4 rounded-md">
-          {error}
+          <h3 className="font-medium">Error loading lesson plans</h3>
+          <p>{error}</p>
+          <p className="mt-2">
+            Try refreshing the page or <Link href="/auth/login" className="underline">logging in again</Link>.
+          </p>
         </div>
       </div>
     );

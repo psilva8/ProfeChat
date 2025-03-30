@@ -8,7 +8,8 @@ const FLASK_BASE_PORT = parseInt(process.env.FLASK_PORT || '5336');
 const FLASK_HOST = process.env.FLASK_HOST || 'localhost';
 
 // Function to attempt connection on multiple Flask ports
-async function tryFlaskConnection(path: string, options: RequestInit) {
+// Exported for reuse in other modules
+export async function tryFlaskConnection(path = '', options: RequestInit = {}) {
   let ports = [];
   
   // First try the environment variable port if available
@@ -47,9 +48,11 @@ async function tryFlaskConnection(path: string, options: RequestInit) {
   let lastError = null;
   
   for (const port of ports) {
-    const url = `http://${FLASK_HOST}:${port}${path}`;
+    const url = `http://${FLASK_HOST}:${port}`;
+    const fullUrl = path ? `${url}${path}` : url;
+    
     try {
-      console.log(`Trying Flask connection on ${url}`);
+      console.log(`Trying Flask connection on ${fullUrl}`);
       
       // Add timeout to prevent hanging
       const controller = new AbortController();
@@ -60,24 +63,43 @@ async function tryFlaskConnection(path: string, options: RequestInit) {
         signal: controller.signal
       };
       
-      const response = await fetch(url, fetchOptions);
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        console.log(`Successfully connected to Flask on port ${port}`);
-        return response;
+      if (path) {
+        const response = await fetch(fullUrl, fetchOptions);
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          console.log(`Successfully connected to Flask on port ${port}`);
+          return response;
+        }
+        
+        // If we get a response but it's not OK, save the status
+        lastError = new Error(`Flask server responded with status ${response.status}`);
+      } else {
+        // If no path specified, just check if the server is up
+        const response = await fetch(`${url}/api/health`, { 
+          method: 'GET',
+          signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          console.log(`Successfully found Flask on port ${port}`);
+          return url; // Just return the base URL if no path specified
+        }
       }
-      
-      // If we get a response but it's not OK, save the status
-      lastError = new Error(`Flask server responded with status ${response.status}`);
     } catch (error) {
       console.error(`Failed to connect to Flask on port ${port}:`, error);
       lastError = error;
     }
   }
   
-  // If we've tried all ports and none succeeded, throw the last error
-  throw lastError || new Error('Could not connect to Flask server on any port');
+  // If we've tried all ports and none succeeded, throw or return null
+  if (path) {
+    throw lastError || new Error('Could not connect to Flask server on any port');
+  } else {
+    console.error('Could not connect to Flask server on any port');
+    return null;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -95,13 +117,30 @@ export async function POST(req: NextRequest) {
     console.log('Generating lesson plan with:', body);
     
     // Call Flask backend with multiple port attempts
-    const response = await tryFlaskConnection('/api/generate-lesson', {
+    const flaskUrl = await tryFlaskConnection();
+    
+    if (!flaskUrl) {
+      return NextResponse.json(
+        { error: 'Could not connect to Flask API' },
+        { status: 500 }
+      );
+    }
+    
+    const response = await fetch(`${flaskUrl}/api/generate-lesson`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body)
     });
+
+    if (!response.ok) {
+      console.error('Flask API returned status:', response.status);
+      return NextResponse.json(
+        { error: `Flask API error: ${response.statusText}` },
+        { status: 500 }
+      );
+    }
 
     const data = await response.json();
     

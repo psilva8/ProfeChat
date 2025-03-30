@@ -1,33 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 import { tryFlaskConnection } from '../lesson-plans/generate/route';
-
-// This is a test API that directly calls the Flask API without needing authentication
-
-const FLASK_BASE_PORT = parseInt(process.env.FLASK_PORT || '5336');
-const MAX_PORT_ATTEMPTS = 5;
-
-// Function to try multiple ports for Flask server
-async function fetchWithPortFallback(path: string, options: RequestInit) {
-  let lastError;
-  
-  for (let portOffset = 0; portOffset < MAX_PORT_ATTEMPTS; portOffset++) {
-    const currentPort = FLASK_BASE_PORT + portOffset;
-    const url = `http://localhost:${currentPort}${path}`;
-    
-    try {
-      console.log(`Attempting to connect to Flask server at ${url}`);
-      const response = await fetch(url, options);
-      if (response.ok) {
-        return response;
-      }
-    } catch (error) {
-      console.error(`Failed to connect to Flask server at port ${currentPort}:`, error);
-      lastError = error;
-    }
-  }
-  
-  throw lastError || new Error('Failed to connect to Flask server on any port');
-}
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -43,6 +16,20 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
+      );
+    }
+
+    // Get test user ID
+    const testUser = await db.user.findUnique({
+      where: {
+        email: 'test@example.com'
+      }
+    });
+
+    if (!testUser) {
+      return NextResponse.json(
+        { error: 'Test user not found' },
+        { status: 404 }
       );
     }
 
@@ -88,9 +75,23 @@ export async function POST(request: Request) {
     const flaskData = await flaskResponse.json();
     console.log('Flask API responded with lesson plan');
 
+    // Save lesson plan to database
+    const lessonPlan = await db.lessonPlan.create({
+      data: {
+        userId: testUser.id,
+        subject,
+        grade,
+        topic,
+        duration,
+        objectives: objectives || 'No objectives provided',
+        content: flaskData.lesson_plan,
+      },
+    });
+
     return NextResponse.json({
       success: true,
-      lesson_plan: flaskData.lesson_plan
+      lesson_plan: flaskData.lesson_plan,
+      saved: lessonPlan
     });
   } catch (error) {
     console.error('Error generating lesson plan:', error);

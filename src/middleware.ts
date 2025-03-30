@@ -6,10 +6,21 @@ export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Define paths that are protected (requiring authentication)
-  const protectedPaths = ['/dashboard', '/dashboard/', '/api/lesson-plans'];
+  const protectedPaths = [
+    '/dashboard', 
+    '/dashboard/', 
+    '/api/lesson-plans'
+  ];
+  
+  // Check if the path is protected
   const isProtectedPath = protectedPaths.some(path => 
-    pathname.startsWith(path)
+    pathname === path || pathname.startsWith(`${path}/`)
   );
+
+  // Skip our test endpoints
+  if (pathname.startsWith('/api/test-')) {
+    return NextResponse.next();
+  }
 
   // Get the authentication token
   const token = await getToken({ 
@@ -21,6 +32,16 @@ export default async function middleware(request: NextRequest) {
 
   // If it's a protected path and not authenticated, redirect to login
   if (isProtectedPath && !isAuthenticated) {
+    console.log(`Redirecting unauthenticated user from ${pathname} to login`);
+    
+    // For API requests, return unauthorized instead of redirecting
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
     const url = new URL('/auth/login', request.url);
     url.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(url);
@@ -40,5 +61,6 @@ export const config = {
     '/dashboard/:path*',
     '/auth/:path*',
     '/api/lesson-plans/:path*',
+    '/api/test-:path*',
   ],
 }; 

@@ -3,6 +3,10 @@ import { db } from "@/lib/db";
 
 // WARNING: This endpoint is for development testing only and should be removed in production
 
+// Force Node.js runtime
+export const runtime = 'nodejs';
+export const preferredRegion = 'home';
+
 // Force dynamic to avoid caching
 export const dynamic = "force-dynamic";
 
@@ -16,65 +20,47 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Check if test user already exists
-    const existingUser = await db.user.findFirst({
+    // Check if test user exists
+    let testUser = await db.user.findUnique({
       where: {
-        email: "test@example.com",
-      },
+        email: 'test@example.com'
+      }
     });
 
-    if (existingUser) {
+    // If not, create one
+    if (!testUser) {
+      testUser = await db.user.create({
+        data: {
+          email: 'test@example.com',
+          name: 'Test User',
+          password: 'not-a-real-password' // Not a real password, just for testing
+        }
+      });
+      
       return NextResponse.json({
         success: true,
-        message: "Test user already exists",
+        message: 'Test user created',
         user: {
-          id: existingUser.id,
-          email: existingUser.email,
-          name: existingUser.name,
-        },
+          id: testUser.id,
+          email: testUser.email,
+          name: testUser.name
+        }
       });
     }
 
-    // Create a test user record
-    const user = await db.user.create({
-      data: {
-        name: "Test User",
-        email: "test@example.com",
-        // Using a plain text password for testing - DO NOT USE THIS IN PRODUCTION
-        password: "test123", 
-      },
-    });
-
-    // Create a test lesson plan for this user
-    const lessonPlan = await db.lessonPlan.create({
-      data: {
-        userId: user.id,
-        grade: "5",
-        subject: "Mathematics",
-        topic: "Fractions",
-        duration: 45,
-        objectives: "Understanding fractions as parts of a whole",
-        content: "This is a test lesson plan created for development purposes.",
-      },
-    });
-
     return NextResponse.json({
       success: true,
-      message: "Test user created successfully",
+      message: 'Test user already exists',
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
-      lessonPlan: {
-        id: lessonPlan.id,
-        topic: lessonPlan.topic,
-      },
+        id: testUser.id,
+        email: testUser.email,
+        name: testUser.name
+      }
     });
   } catch (error) {
-    console.error("Error creating test user:", error);
+    console.error('Error creating/checking test user:', error);
     return NextResponse.json(
-      { error: "Failed to create test user", details: (error as Error).message },
+      { error: 'Internal Server Error', details: String(error) },
       { status: 500 }
     );
   }
