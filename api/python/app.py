@@ -349,6 +349,34 @@ def test_lesson_plans():
     
     return jsonify(sample_plans)
 
+@app.route('/api/test-lesson-plans', methods=['POST'])
+def test_lesson_plans_post():
+    """Handle POST requests to test-lesson-plans, for testing without authentication"""
+    logger.info("POST request to test lesson plans endpoint")
+    try:
+        plan_data = request.json
+        logger.info(f"Received plan data: {plan_data}")
+        
+        # Initialize the test_plans list if it doesn't exist
+        if not hasattr(app, 'test_plans'):
+            app.test_plans = []
+        
+        # Add the new plan to the in-memory list
+        app.test_plans.append(plan_data)
+        logger.info(f"Test lesson plan received and stored. Total plans: {len(app.test_plans)}")
+        
+        return jsonify({
+            "success": True,
+            "message": "POST request to test lesson plans received",
+            "data": plan_data
+        })
+    except Exception as e:
+        logger.error(f"Error handling POST to test-lesson-plans: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @app.route('/api/test-create-plan', methods=['POST'])
 def create_test_plan():
     """Add a new test lesson plan to the in-memory store"""
