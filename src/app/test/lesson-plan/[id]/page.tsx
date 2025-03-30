@@ -30,7 +30,7 @@ export default function LessonPlanDetailPage({ params }: { params: { id: string 
     async function fetchLessonPlan() {
       try {
         // Get all plans and find the one with matching ID
-        const response = await fetch('/api/test-lesson-plans');
+        const response = await fetch('/api/proxy/test-lesson-plans');
         if (!response.ok) {
           throw new Error('Failed to fetch lesson plans');
         }

@@ -63,7 +63,7 @@ export default function CreateLessonPlanPage() {
       };
 
       // Save the plan by adding it to the test-lesson-plans list
-      const response = await fetch('/api/test-create-plan', {
+      const response = await fetch('/api/proxy/test-create-plan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

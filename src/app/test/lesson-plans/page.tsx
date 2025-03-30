@@ -29,8 +29,8 @@ export default function TestLessonPlansPage() {
   useEffect(() => {
     async function fetchLessonPlans() {
       try {
-        // Using the unauthenticated test endpoint
-        const response = await fetch('/api/test-lesson-plans');
+        // Using the proxy endpoint which is more reliable
+        const response = await fetch('/api/proxy/test-lesson-plans');
         if (!response.ok) {
           const data = await response.json();
           throw new Error(`Failed to fetch lesson plans: ${data.error || response.statusText}`);

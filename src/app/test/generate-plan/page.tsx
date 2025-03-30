@@ -30,7 +30,7 @@ export default function GeneratePlanPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/generate-lesson', {
+      const response = await fetch('/api/proxy/generate-lesson', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
