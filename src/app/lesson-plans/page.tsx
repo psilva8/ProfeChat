@@ -29,7 +29,7 @@ export default function LessonPlansPage() {
   useEffect(() => {
     async function fetchLessonPlans() {
       try {
-        // Use test-lesson-plans instead since the proxy might be causing issues
+        // Use test-lesson-plans endpoint
         const response = await fetch('/api/test-lesson-plans', {
           cache: 'no-store',
           headers: {
@@ -48,12 +48,13 @@ export default function LessonPlansPage() {
           throw new Error(`Expected JSON response but got ${contentType}`);
         }
         
+        // Parse JSON only once
+        const data = await response.json();
+        
         if (!response.ok) {
-          const data = await response.json();
           throw new Error(`Failed to fetch lesson plans: ${data.error || response.statusText}`);
         }
         
-        const data = await response.json();
         console.log('Lesson plans data:', data);
         setLessonPlans(data);
       } catch (err) {
