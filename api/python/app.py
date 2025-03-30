@@ -268,6 +268,93 @@ def generate_activities():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/test-lesson-plans', methods=['GET'])
+def test_lesson_plans():
+    """Return sample lesson plans for testing without authentication"""
+    logger.info("Test lesson plans endpoint called")
+    sample_plans = [
+        {
+            "id": "test-plan-1",
+            "subject": "English",
+            "grade": "8th Grade",
+            "topic": "Poetry Analysis",
+            "duration": 60,
+            "objectives": "Students will learn to identify literary devices in poetry and analyze their effect.",
+            "content": {
+                "introduction": "Begin with a reading of 'The Road Not Taken' by Robert Frost.",
+                "main_content": "Discuss metaphor, imagery, and symbolism in the poem.",
+                "activities": "Group work to identify literary devices in assigned poems.",
+                "assessment": "Students will write a short analysis of a poem using the techniques learned.",
+                "closure": "Class discussion on how poetry analysis skills transfer to other texts."
+            },
+            "created_at": "2023-03-30T14:30:00Z"
+        },
+        {
+            "id": "test-plan-2",
+            "subject": "Science",
+            "grade": "5th Grade",
+            "topic": "The Solar System",
+            "duration": 45,
+            "objectives": "Students will be able to identify the planets in our solar system and describe their key characteristics.",
+            "content": {
+                "introduction": "Show a video clip about space exploration.",
+                "main_content": "Present information about each planet with visual aids.",
+                "activities": "Create a scale model of the solar system in the classroom.",
+                "assessment": "Quiz on planet names, order, and key facts.",
+                "closure": "Discuss how understanding our solar system helps us understand our place in the universe."
+            },
+            "created_at": "2023-03-29T10:15:00Z"
+        },
+        {
+            "id": "test-plan-3",
+            "subject": "Mathematics",
+            "grade": "9th Grade",
+            "topic": "Algebra Basics",
+            "duration": 55,
+            "objectives": "Students will understand how to solve simple equations with one variable.",
+            "content": {
+                "introduction": "Review the concept of variables with real-world examples.",
+                "main_content": "Demonstrate solving for x in various equations.",
+                "activities": "Worksheet practice with graduated difficulty levels.",
+                "assessment": "Exit ticket with 3 equations to solve independently.",
+                "closure": "Discuss how algebraic thinking is used in daily life and various careers."
+            },
+            "created_at": "2023-03-28T09:45:00Z"
+        }
+    ]
+    
+    # Add any dynamically created plans if they exist
+    if hasattr(app, 'test_plans'):
+        sample_plans.extend(app.test_plans)
+    
+    return jsonify(sample_plans)
+
+@app.route('/api/test-create-plan', methods=['POST'])
+def create_test_plan():
+    """Add a new test lesson plan to the in-memory store"""
+    try:
+        plan_data = request.json
+        logger.info(f"Creating test lesson plan: {plan_data.get('topic')}")
+        
+        # Initialize the test_plans list if it doesn't exist
+        if not hasattr(app, 'test_plans'):
+            app.test_plans = []
+        
+        # Add the new plan to the in-memory list
+        app.test_plans.append(plan_data)
+        logger.info(f"Test lesson plan created successfully. Total plans: {len(app.test_plans)}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Test lesson plan created successfully"
+        })
+    except Exception as e:
+        logger.error(f"Error creating test lesson plan: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 if __name__ == '__main__':
     # Validate OpenAI API key
     try:

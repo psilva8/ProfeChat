@@ -1,57 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function TestGeneratePlan() {
+export default function GeneratePlanPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     subject: '',
     grade: '',
     topic: '',
     duration: 45,
-    objectives: '',
+    objectives: ''
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'duration' ? parseInt(value) || 0 : value,
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'duration' ? parseInt(value, 10) || 0 : value
+    }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsGenerating(true);
     setError('');
-    setResult(null);
 
     try {
-      const response = await fetch('/api/test-generate-lesson', {
+      const response = await fetch('/api/generate-lesson', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData)
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to generate lesson plan');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate lesson plan');
       }
 
       const data = await response.json();
-      setResult(data.lesson_plan);
+      if (data.success) {
+        // Redirect to view all plans after successful generation
+        router.push('/test/lesson-plans');
+      } else {
+        throw new Error(data.error || 'Unknown error occurred');
+      }
     } catch (err) {
       console.error('Error generating lesson plan:', err);
-      setError(err instanceof Error ? err.message : 'Error generating lesson plan');
+      setError(err instanceof Error ? err.message : 'Failed to generate lesson plan');
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -59,16 +62,15 @@ export default function TestGeneratePlan() {
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Generate Lesson Plan with AI</h1>
-        <Link
+        <Link 
           href="/test/lesson-plans"
-          className="text-accent-600 hover:text-accent-800"
-        >
+          className="text-accent-600 hover:text-accent-800">
           View All Lesson Plans
         </Link>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6">
+        <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-md">
           {error}
         </div>
       )}
@@ -82,9 +84,9 @@ export default function TestGeneratePlan() {
             type="text"
             id="subject"
             name="subject"
+            required
             value={formData.subject}
             onChange={handleChange}
-            required
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
@@ -97,9 +99,9 @@ export default function TestGeneratePlan() {
             type="text"
             id="grade"
             name="grade"
+            required
             value={formData.grade}
             onChange={handleChange}
-            required
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
@@ -112,9 +114,9 @@ export default function TestGeneratePlan() {
             type="text"
             id="topic"
             name="topic"
+            required
             value={formData.topic}
             onChange={handleChange}
-            required
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
@@ -127,10 +129,10 @@ export default function TestGeneratePlan() {
             type="number"
             id="duration"
             name="duration"
+            required
+            min={1}
             value={formData.duration}
             onChange={handleChange}
-            required
-            min="1"
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
@@ -152,28 +154,20 @@ export default function TestGeneratePlan() {
         <div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isGenerating}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 disabled:opacity-50"
           >
-            {isLoading ? 'Generating...' : 'Generate Lesson Plan'}
+            {isGenerating ? (
+              <>
+                <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full" />
+                Generating...
+              </>
+            ) : (
+              'Generate Lesson Plan'
+            )}
           </button>
         </div>
       </form>
-
-      {result && (
-        <div className="mt-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Generated Lesson Plan</h2>
-          <div className="bg-white p-6 rounded-lg shadow whitespace-pre-wrap">{result}</div>
-          <div className="mt-4">
-            <Link
-              href="/test/lesson-plans"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500"
-            >
-              View All Lesson Plans
-            </Link>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function CreateTestLessonPlan() {
+export default function CreateLessonPlanPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     subject: '',
@@ -12,43 +12,77 @@ export default function CreateTestLessonPlan() {
     topic: '',
     duration: 45,
     objectives: '',
+    content: {
+      introduction: '',
+      main_content: '',
+      activities: '',
+      assessment: '',
+      closure: ''
+    }
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'duration' ? parseInt(value) || 0 : value,
-    });
+    
+    if (name.includes('.')) {
+      // Handle nested content fields (e.g., content.introduction)
+      const [parent, child] = name.split('.');
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent as keyof typeof prev] as object,
+          [child]: value
+        }
+      }));
+    } else {
+      // Handle top-level fields
+      setFormData(prev => ({
+        ...prev,
+        [name]: name === 'duration' ? parseInt(value, 10) || 0 : value
+      }));
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     setError('');
 
     try {
-      const response = await fetch('/api/test-create-lesson', {
+      // Generate a unique ID for the test plan
+      const testId = `manual-plan-${Date.now()}`;
+      const timestamp = new Date().toISOString();
+      
+      // Prepare data in the format expected by the API
+      const planData = {
+        ...formData,
+        id: testId,
+        created_at: timestamp
+      };
+
+      // Save the plan by adding it to the test-lesson-plans list
+      const response = await fetch('/api/test-create-plan', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(planData)
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create lesson plan');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create lesson plan');
       }
 
+      // Redirect to the lesson plans list on success
       router.push('/test/lesson-plans');
     } catch (err) {
       console.error('Error creating lesson plan:', err);
-      setError(err instanceof Error ? err.message : 'Error creating lesson plan');
+      setError(err instanceof Error ? err.message : 'Failed to create lesson plan');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -65,7 +99,7 @@ export default function CreateTestLessonPlan() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6">
+        <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-md">
           {error}
         </div>
       )}
@@ -79,9 +113,9 @@ export default function CreateTestLessonPlan() {
             type="text"
             id="subject"
             name="subject"
+            required
             value={formData.subject}
             onChange={handleChange}
-            required
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
@@ -94,9 +128,9 @@ export default function CreateTestLessonPlan() {
             type="text"
             id="grade"
             name="grade"
+            required
             value={formData.grade}
             onChange={handleChange}
-            required
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
@@ -109,9 +143,9 @@ export default function CreateTestLessonPlan() {
             type="text"
             id="topic"
             name="topic"
+            required
             value={formData.topic}
             onChange={handleChange}
-            required
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
@@ -124,10 +158,10 @@ export default function CreateTestLessonPlan() {
             type="number"
             id="duration"
             name="duration"
+            required
+            min={1}
             value={formData.duration}
             onChange={handleChange}
-            required
-            min="1"
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
@@ -146,13 +180,94 @@ export default function CreateTestLessonPlan() {
           />
         </div>
 
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900">Content</h3>
+          
+          <div>
+            <label htmlFor="content.introduction" className="block text-sm font-medium text-gray-700">
+              Introduction
+            </label>
+            <textarea
+              id="content.introduction"
+              name="content.introduction"
+              rows={2}
+              value={formData.content.introduction}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="content.main_content" className="block text-sm font-medium text-gray-700">
+              Main Content
+            </label>
+            <textarea
+              id="content.main_content"
+              name="content.main_content"
+              rows={3}
+              value={formData.content.main_content}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="content.activities" className="block text-sm font-medium text-gray-700">
+              Activities
+            </label>
+            <textarea
+              id="content.activities"
+              name="content.activities"
+              rows={2}
+              value={formData.content.activities}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="content.assessment" className="block text-sm font-medium text-gray-700">
+              Assessment
+            </label>
+            <textarea
+              id="content.assessment"
+              name="content.assessment"
+              rows={2}
+              value={formData.content.assessment}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="content.closure" className="block text-sm font-medium text-gray-700">
+              Closure
+            </label>
+            <textarea
+              id="content.closure"
+              name="content.closure"
+              rows={2}
+              value={formData.content.closure}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            />
+          </div>
+        </div>
+
         <div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSubmitting}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 disabled:opacity-50"
           >
-            {isLoading ? 'Creating...' : 'Create Lesson Plan'}
+            {isSubmitting ? (
+              <>
+                <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full" />
+                Saving...
+              </>
+            ) : (
+              'Create Lesson Plan'
+            )}
           </button>
         </div>
       </form>

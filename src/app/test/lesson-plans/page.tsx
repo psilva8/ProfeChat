@@ -10,7 +10,15 @@ interface LessonPlan {
   grade: string;
   topic: string;
   duration: number;
-  createdAt: string;
+  objectives: string;
+  content: {
+    introduction: string;
+    main_content: string;
+    activities: string;
+    assessment: string;
+    closure: string;
+  };
+  created_at: string;
 }
 
 export default function TestLessonPlansPage() {
@@ -83,7 +91,10 @@ export default function TestLessonPlansPage() {
           <ul role="list" className="divide-y divide-gray-200">
             {lessonPlans.map((plan) => (
               <li key={plan.id}>
-                <div className="block hover:bg-gray-50 px-4 py-4 sm:px-6">
+                <Link 
+                  href={`/test/lesson-plan/${plan.id}`}
+                  className="block hover:bg-gray-50 px-4 py-4 sm:px-6"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-accent-600 truncate">
@@ -98,11 +109,11 @@ export default function TestLessonPlansPage() {
                         {plan.duration} minutes
                       </p>
                       <p className="mt-1 text-sm text-gray-500">
-                        {new Date(plan.createdAt).toLocaleDateString()}
+                        {new Date(plan.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                </div>
+                </Link>
               </li>
             ))}
           </ul>

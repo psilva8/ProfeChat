@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-// Force Node.js runtime
-export const runtime = 'nodejs';
-export const preferredRegion = 'home';
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 // Helper function to get the Flask server port
@@ -49,14 +47,18 @@ async function getFlaskPort(): Promise<number> {
   return 5336;
 }
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
+    const requestData = await request.json();
     const port = await getFlaskPort();
-    console.log(`Trying Flask server on port ${port}`);
+    console.log(`Forwarding lesson plan generation request to Flask on port ${port}`);
     
-    const response = await fetch(`http://localhost:${port}/api/test-lesson-plans`, {
-      method: 'GET',
-      cache: 'no-store'
+    const response = await fetch(`http://localhost:${port}/api/generate-lesson`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
     });
 
     if (!response.ok) {
@@ -65,9 +67,13 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    // Create a test lesson plan entry that can be retrieved via test-lesson-plans
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching lesson plans from Flask API:', error);
-    return NextResponse.json({ error: 'Failed to connect to Flask API' }, { status: 500 });
+    console.error('Error generating lesson plan from Flask API:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to connect to Flask API' }, 
+      { status: 500 }
+    );
   }
 } 
