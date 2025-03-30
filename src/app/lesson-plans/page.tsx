@@ -29,13 +29,32 @@ export default function LessonPlansPage() {
   useEffect(() => {
     async function fetchLessonPlans() {
       try {
-        // Using the proxy endpoint for lesson plans
-        const response = await fetch('/api/proxy/lesson-plans');
+        // Use test-lesson-plans instead since the proxy might be causing issues
+        const response = await fetch('/api/test-lesson-plans', {
+          cache: 'no-store',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('Response status:', response.status);
+        
+        // Check if the response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('Non-JSON response received:', text.substring(0, 100));
+          throw new Error(`Expected JSON response but got ${contentType}`);
+        }
+        
         if (!response.ok) {
           const data = await response.json();
           throw new Error(`Failed to fetch lesson plans: ${data.error || response.statusText}`);
         }
+        
         const data = await response.json();
+        console.log('Lesson plans data:', data);
         setLessonPlans(data);
       } catch (err) {
         console.error('Error fetching lesson plans:', err);
