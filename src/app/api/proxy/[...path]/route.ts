@@ -74,13 +74,16 @@ async function handleRequest(
     const port = await getFlaskPort();
     const targetPath = pathSegments.join('/');
     
-    // Special handling for activities endpoint which doesn't have the api/ prefix 
-    // in Flask but does in our proxy
+    console.log(`Handling proxy request for path: ${targetPath}`);
+    
+    // Special handling for endpoints with different paths in Flask vs Next.js
     let url: string;
     if (targetPath === 'activities') {
       url = `http://localhost:${port}/api/activities`;
     } else if (targetPath === 'lesson-plans') {
       url = `http://localhost:${port}/lesson-plans`;
+    } else if (targetPath === 'test-lesson-plans') {
+      url = `http://localhost:${port}/api/test-lesson-plans`; 
     } else {
       url = `http://localhost:${port}/api/${targetPath}`;
     }
@@ -97,6 +100,8 @@ async function handleRequest(
       cache: 'no-store'
     });
 
+    console.log(`Flask responded with status: ${response.status}`);
+    
     if (!response.ok) {
       console.error(`Flask responded with status: ${response.status}`);
       const errorData = await response.json().catch(() => ({ 
