@@ -73,7 +73,17 @@ async function handleRequest(
   try {
     const port = await getFlaskPort();
     const targetPath = pathSegments.join('/');
-    const url = `http://localhost:${port}/api/${targetPath}`;
+    
+    // Special handling for activities endpoint which doesn't have the api/ prefix 
+    // in Flask but does in our proxy
+    let url: string;
+    if (targetPath === 'activities') {
+      url = `http://localhost:${port}/api/activities`;
+    } else if (targetPath === 'lesson-plans') {
+      url = `http://localhost:${port}/lesson-plans`;
+    } else {
+      url = `http://localhost:${port}/api/${targetPath}`;
+    }
     
     console.log(`Proxying ${method} request to Flask: ${url}`);
 
@@ -102,7 +112,8 @@ async function handleRequest(
     return NextResponse.json(
       { 
         error: 'Failed to connect to Flask API',
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
+        port: await getFlaskPort()
       }, 
       { status: 500 }
     );

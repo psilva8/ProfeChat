@@ -237,10 +237,23 @@ def generate_unit_plan():
 def generate_activities():
     try:
         data = request.json
+        if not data:
+            logger.error("No data provided in request")
+            return jsonify({"success": False, "error": "No data provided"}), 400
+            
         subject = data.get('subject')
         grade = data.get('grade')
         topic = data.get('topic')
         activity_type = data.get('activityType', 'individual')
+        
+        # Validate required fields
+        if not all([subject, grade, topic]):
+            missing = []
+            if not subject: missing.append("subject")
+            if not grade: missing.append("grade")
+            if not topic: missing.append("topic")
+            logger.error(f"Missing required fields: {', '.join(missing)}")
+            return jsonify({"success": False, "error": f"Missing required fields: {', '.join(missing)}"}), 400
         
         prompt = f"""Crea 3 actividades {activity_type}s atractivas para la clase de {subject}, {grade}° grado, sobre {topic}. 
         Para cada actividad incluye:
@@ -253,6 +266,8 @@ def generate_activities():
         Asegúrate de que las actividades sean apropiadas para el nivel y estén alineadas con el Currículo Nacional.
         La respuesta debe estar en español."""
         
+        logger.info(f"Calling OpenAI API for activities generation with prompt related to {subject}, {grade}, {topic}")
+        
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -261,12 +276,17 @@ def generate_activities():
             ]
         )
         
+        logger.info("Successfully generated activities with OpenAI")
         return jsonify({
             "success": True,
             "activities": response.choices[0].message.content
         })
+    except OpenAIError as e:
+        logger.error(f"OpenAI API error: {str(e)}")
+        return jsonify({"success": False, "error": f"AI service error: {str(e)}"}), 500
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        logger.error(f"Error generating activities: {str(e)}")
+        return jsonify({"success": False, "error": f"Server error: {str(e)}"}), 500
 
 @app.route('/api/test-lesson-plans', methods=['GET'])
 def test_lesson_plans():
@@ -354,6 +374,76 @@ def create_test_plan():
             "success": False,
             "error": str(e)
         }), 500
+
+@app.route('/api/debug', methods=['GET'])
+def debug_endpoints():
+    """Return a list of all available endpoints for debugging"""
+    endpoints = []
+    for rule in app.url_map.iter_rules():
+        endpoints.append({
+            'endpoint': rule.endpoint,
+            'methods': [method for method in rule.methods if method != 'OPTIONS' and method != 'HEAD'],
+            'path': str(rule)
+        })
+    return jsonify({
+        'endpoints': endpoints,
+        'total': len(endpoints)
+    })
+
+@app.route('/api/activities', methods=['GET'])
+def get_activities():
+    """Return a list of educational activities"""
+    logger.info("Activities endpoint called")
+    activities = [
+        {
+            "id": "activity-1",
+            "title": "Group Discussion on Literary Themes",
+            "subject": "English",
+            "grade": "High School",
+            "duration": 30,
+            "description": "Students form groups to discuss major themes in the assigned reading"
+        },
+        {
+            "id": "activity-2",
+            "title": "Science Experiment: Plant Growth",
+            "subject": "Science",
+            "grade": "Elementary",
+            "duration": 45,
+            "description": "Students observe and record plant growth under different conditions"
+        },
+        {
+            "id": "activity-3",
+            "title": "Math Problem Solving Challenge",
+            "subject": "Mathematics",
+            "grade": "Middle School",
+            "duration": 25,
+            "description": "Students work in pairs to solve real-world math problems"
+        }
+    ]
+    return jsonify(activities)
+
+@app.route('/lesson-plans', methods=['GET'])
+def frontend_lesson_plans():
+    """Handle direct requests to /lesson-plans (not through API)"""
+    logger.info("/lesson-plans direct endpoint called")
+    # This endpoint is just to handle direct requests that might come from frontend
+    # Typically, these should be handled by the frontend routing, not Flask
+    return jsonify({
+        "message": "This endpoint is accessible but should be handled by frontend routing",
+        "redirectTo": "/test/lesson-plans"
+    })
+
+@app.route('/api/proxy/activities', methods=['GET'])
+def proxy_activities():
+    """Return a list of educational activities for proxy endpoint"""
+    logger.info("Proxy Activities endpoint called")
+    return get_activities()
+
+@app.route('/api/proxy/lesson-plans', methods=['GET'])
+def proxy_lesson_plans():
+    """Return lesson plans for proxy endpoint"""
+    logger.info("Proxy Lesson Plans endpoint called")
+    return test_lesson_plans()
 
 if __name__ == '__main__':
     # Validate OpenAI API key
