@@ -454,12 +454,10 @@ if __name__ == '__main__':
         logger.error(f"Failed to validate OpenAI API key: {str(e)}")
         exit(1)
 
-    # Get port from environment variable with fallback to 5336
-    base_port = int(os.getenv('FLASK_PORT', 5336))
+    # Use a fixed port instead of searching for an available one
+    port = 5338
+    
     try:
-        port = get_available_port(base_port)
-        logger.info(f"Found available port: {port}")
-        
         # Print the port to stdout for scripts that need to capture it
         # This line is important for the start-flask.js script to detect the port
         print(f"FLASK_SERVER_PORT={port}", flush=True)

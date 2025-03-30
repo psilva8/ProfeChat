@@ -59,9 +59,9 @@ const FALLBACK_DATA = [
   }
 ];
 
-// Helper function to get the Flask server port
+// Helper function to find the Flask server port
 async function getFlaskPort(): Promise<number> {
-  console.log('Attempting to determine Flask server port');
+  console.log('Getting Flask server port');
   
   try {
     // First try to read from the .flask-port file
@@ -98,8 +98,8 @@ async function getFlaskPort(): Promise<number> {
     console.error(`Error reading .flask-port file: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  // Try common ports directly, starting with 5338 which we know is working
-  console.log('Trying common Flask ports...');
+  // Try the fixed port 5338 first, then fall back to others if needed
+  console.log('Trying fixed Flask port 5338 and other common ports...');
   for (const port of [5338, 5336, 5337, 5339, 5340, 5000]) {
     try {
       console.log(`Checking port ${port}...`);
