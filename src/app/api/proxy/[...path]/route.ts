@@ -1,40 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import axios from 'axios';
+
+// List of all possible Flask API ports to check
+const POSSIBLE_FLASK_PORTS = [5338, 5339, 5340, 5341, 5342, 5343, 5344, 5345, 5346, 5347, 5348, 5349, 5350];
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-// Helper function to get the Flask server port
-async function getFlaskPort(): Promise<number> {
-  console.log('Attempting to determine Flask server port');
+// Function to find a working Flask port
+async function findWorkingPort(): Promise<number | null> {
+  // First try the configured port
+  const configuredPort = Number(process.env.FLASK_PORT || 5338);
   
   try {
-    // First try to read from the .flask-port file
-    const portFile = path.join(process.cwd(), '.flask-port');
-    if (fs.existsSync(portFile)) {
-      const portStr = fs.readFileSync(portFile, 'utf8').trim();
-      const port = parseInt(portStr, 10);
-      if (!isNaN(port)) {
-        console.log(`Found Flask port ${port} from .flask-port file`);
-        return port;
-      }
+    const response = await axios.get(`http://localhost:${configuredPort}/status`, { 
+      timeout: 1000 
+    });
+    if (response.status === 200) {
+      return configuredPort;
     }
   } catch (error) {
-    console.error(`Error reading .flask-port file`);
+    // Configured port not working, try alternatives
   }
-
-  // Next, try environment variable
-  const envPort = process.env.FLASK_SERVER_PORT;
-  if (envPort) {
-    const port = parseInt(envPort, 10);
-    if (!isNaN(port)) {
-      return port;
+  
+  // Try each port sequentially until one works
+  for (const port of POSSIBLE_FLASK_PORTS) {
+    if (port === configuredPort) continue; // Skip the one we already tried
+    
+    try {
+      const response = await axios.get(`http://localhost:${port}/status`, { 
+        timeout: 1000
+      });
+      if (response.status === 200) {
+        return port;
+      }
+    } catch (error) {
+      // Port not working, try next one
     }
   }
-
-  // Default to common ports
-  return 5336;
+  
+  return null; // No working port found
 }
 
 export async function GET(
@@ -69,56 +74,71 @@ async function handleRequest(
   request: NextRequest,
   pathSegments: string[],
   method: string
-): Promise<NextResponse> {
+) {
+  const path = pathSegments.join('/');
+  const workingPort = await findWorkingPort();
+  
+  if (!workingPort) {
+    return NextResponse.json(
+      { error: 'No working Flask API server found. Please check if the Flask server is running.' },
+      { status: 503 }
+    );
+  }
+  
+  const url = `http://localhost:${workingPort}/${path}`;
+  const requestHeaders = Object.fromEntries(request.headers);
+  let requestBody = null;
+  
   try {
-    const port = await getFlaskPort();
-    const targetPath = pathSegments.join('/');
-    
-    console.log(`Handling proxy request for path: ${targetPath}`);
-    
-    // Special handling for endpoints with different paths in Flask vs Next.js
-    let url: string;
-    if (targetPath === 'activities') {
-      url = `http://localhost:${port}/api/activities`;
-    } else if (targetPath === 'lesson-plans') {
-      url = `http://localhost:${port}/lesson-plans`;
-    } else if (targetPath === 'test-lesson-plans') {
-      url = `http://localhost:${port}/api/test-lesson-plans`; 
-    } else {
-      url = `http://localhost:${port}/api/${targetPath}`;
+    if (['POST', 'PUT'].includes(method)) {
+      const contentType = request.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        requestBody = await request.json();
+      } else {
+        requestBody = await request.text();
+      }
     }
     
-    console.log(`Proxying ${method} request to Flask: ${url}`);
-
-    // Forward the request to Flask
-    const response = await fetch(url, {
-      method,
+    const response = await axios({
+      method: method.toLowerCase(),
+      url,
       headers: {
-        'Content-Type': request.headers.get('Content-Type') || 'application/json',
+        ...requestHeaders,
+        'X-Forwarded-For': request.headers.get('x-forwarded-for') || request.ip || '127.0.0.1',
       },
-      body: method !== 'GET' && method !== 'HEAD' ? await request.text() : undefined,
-      cache: 'no-store'
+      data: requestBody,
+      responseType: 'arraybuffer',
+      timeout: 30000,
+      validateStatus: () => true, // Return the response regardless of status code
     });
-
-    console.log(`Flask responded with status: ${response.status}`);
     
-    if (!response.ok) {
-      console.error(`Flask responded with status: ${response.status}`);
-      const errorData = await response.json().catch(() => ({ 
-        error: `Flask server responded with status ${response.status}` 
-      }));
-      return NextResponse.json(errorData, { status: response.status });
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Convert the arraybuffer to a Buffer
+    const data = Buffer.from(response.data);
+    
+    // Create a Response with the appropriate status and headers
+    const headers = new Headers();
+    Object.entries(response.headers).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        headers.append(key, value);
+      } else if (Array.isArray(value)) {
+        value.forEach(v => headers.append(key, v));
+      }
+    });
+    
+    return new NextResponse(data, {
+      status: response.status,
+      statusText: response.statusText,
+      headers
+    });
   } catch (error) {
-    console.error('Error proxying request to Flask:', error);
+    console.error(`Error proxying to ${url}:`, error);
+    
     return NextResponse.json(
       { 
-        error: 'Failed to connect to Flask API',
+        error: 'Error proxying request to Flask API', 
         details: error instanceof Error ? error.message : String(error),
-        port: await getFlaskPort()
+        path,
+        url
       }, 
       { status: 500 }
     );

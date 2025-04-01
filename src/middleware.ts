@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { NextRequest } from "next/server";
+import { isTestRoute } from "@/lib/utils";
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -9,7 +10,9 @@ export default async function middleware(request: NextRequest) {
   const protectedPaths = [
     '/dashboard', 
     '/dashboard/', 
-    '/api/lesson-plans'
+    '/api/lesson-plans',
+    '/api/rubrics',
+    '/api/activities'
   ];
   
   // Check if the path is protected
@@ -17,8 +20,9 @@ export default async function middleware(request: NextRequest) {
     pathname === path || pathname.startsWith(`${path}/`)
   );
 
-  // Skip our test endpoints
-  if (pathname.startsWith('/api/test-')) {
+  // Skip authentication check for test routes
+  if (isTestRoute(pathname)) {
+    console.log(`Bypassing auth for test route: ${pathname}`);
     return NextResponse.next();
   }
 
@@ -37,7 +41,7 @@ export default async function middleware(request: NextRequest) {
     // For API requests, return unauthorized instead of redirecting
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized', message: 'Authentication required' },
         { status: 401 }
       );
     }
@@ -61,6 +65,12 @@ export const config = {
     '/dashboard/:path*',
     '/auth/:path*',
     '/api/lesson-plans/:path*',
+    '/api/rubrics/:path*',
+    '/api/activities/:path*',
     '/api/test-:path*',
+    '/api/proxy/:path*',
+    '/api/generate-lesson',
+    '/api/direct-test',
+    '/api/config-check',
   ],
 }; 

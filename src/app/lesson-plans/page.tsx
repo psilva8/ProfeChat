@@ -25,11 +25,14 @@ export default function LessonPlansPage() {
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchLessonPlans() {
       try {
-        // Use test-lesson-plans endpoint
+        setDebugInfo(`Fetching lesson plans... ${new Date().toISOString()}`);
+        
+        // Use test-lesson-plans endpoint for testing without auth
         const response = await fetch('/api/test-lesson-plans', {
           cache: 'no-store',
           headers: {
@@ -38,28 +41,62 @@ export default function LessonPlansPage() {
           }
         });
         
+        setDebugInfo(prev => `${prev}\nResponse status: ${response.status}`);
         console.log('Response status:', response.status);
         
         // Check if the response is JSON
         const contentType = response.headers.get('content-type');
+        setDebugInfo(prev => `${prev}\nContent-Type: ${contentType}`);
+        
         if (!contentType || !contentType.includes('application/json')) {
           const text = await response.text();
+          setDebugInfo(prev => `${prev}\nNon-JSON response: ${text.substring(0, 100)}...`);
           console.error('Non-JSON response received:', text.substring(0, 100));
           throw new Error(`Expected JSON response but got ${contentType}`);
         }
         
         // Parse JSON only once
-        const data = await response.json();
+        let data: any;
+        try {
+          data = await response.json();
+          setDebugInfo(prev => `${prev}\nResponse parsed successfully. Data type: ${typeof data}`);
+          if (Array.isArray(data)) {
+            setDebugInfo(prev => `${prev}\nData is an array with ${data.length} items`);
+          } else {
+            setDebugInfo(prev => `${prev}\nData is an object: ${JSON.stringify(data).substring(0, 100)}...`);
+          }
+        } catch (jsonError) {
+          setDebugInfo(prev => `${prev}\nJSON parse error: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`);
+          throw new Error(`Failed to parse JSON response: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`);
+        }
         
         if (!response.ok) {
+          setDebugInfo(prev => `${prev}\nAPI error: ${data.error || response.statusText}`);
           throw new Error(`Failed to fetch lesson plans: ${data.error || response.statusText}`);
         }
         
+        // Ensure data is in the expected format
+        if (!Array.isArray(data)) {
+          setDebugInfo(prev => `${prev}\nUnexpected response format: data is not an array`);
+          if (data.success === false) {
+            throw new Error(`API error: ${data.error || 'Unknown error'}`);
+          }
+          // Try to handle nested data structure
+          if (data.lessonPlans && Array.isArray(data.lessonPlans)) {
+            data = data.lessonPlans;
+            setDebugInfo(prev => `${prev}\nUsing nested lessonPlans array with ${data.length} items`);
+          } else {
+            throw new Error('Unexpected response format: data is not an array and does not contain lessonPlans array');
+          }
+        }
+        
         console.log('Lesson plans data:', data);
+        setDebugInfo(prev => `${prev}\nSuccessfully loaded ${data.length} lesson plans`);
         setLessonPlans(data);
       } catch (err) {
         console.error('Error fetching lesson plans:', err);
         setError(err instanceof Error ? err.message : 'Error loading lesson plans');
+        setDebugInfo(prev => `${prev}\nERROR: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
         setIsLoading(false);
       }
@@ -72,16 +109,6 @@ export default function LessonPlansPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-600"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4">
-        <div className="bg-red-50 text-red-600 p-4 rounded-md">
-          {error}
-        </div>
       </div>
     );
   }
@@ -117,7 +144,20 @@ export default function LessonPlansPage() {
         </div>
       </div>
 
-      {lessonPlans.length === 0 ? (
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6">
+          <h3 className="font-medium">Error loading lesson plans</h3>
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 text-red-700 underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {lessonPlans.length === 0 && !error ? (
         <div className="text-center py-12 bg-white shadow overflow-hidden sm:rounded-lg">
           <h3 className="mt-2 text-sm font-medium text-gray-900">No lesson plans found</h3>
           <p className="mt-1 text-sm text-gray-500">
@@ -158,6 +198,15 @@ export default function LessonPlansPage() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {debugInfo && (
+        <div className="mt-6 p-4 bg-gray-100 rounded-md border border-gray-300">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Debug Information</h3>
+          <pre className="text-xs whitespace-pre-wrap text-gray-600">
+            {debugInfo}
+          </pre>
         </div>
       )}
 

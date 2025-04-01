@@ -1,96 +1,69 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { headers } from 'next/headers';
+import axios from 'axios';
 
-export const dynamic = 'force-dynamic';
+// List of all possible Flask API ports to check
+const POSSIBLE_FLASK_PORTS = [5338, 5339, 5340, 5341, 5342, 5343, 5344, 5345, 5346, 5347, 5348, 5349, 5350];
+
+// Function to check if a port is responsive
+async function checkPort(port: number): Promise<{ success: boolean, error?: string, data?: any }> {
+  try {
+    const response = await axios.get(`http://localhost:${port}/status`, {
+      timeout: 2000
+    });
+    
+    return {
+      success: true,
+      data: response.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
 
 export async function GET() {
-  try {
-    // Get information about the environment
-    const nodeEnv = process.env.NODE_ENV || 'development';
-    const nextVersion = process.env.NEXT_VERSION || 'unknown';
-    
-    // Check for Flask port configuration
-    let flaskPort;
-    try {
-      const portFile = path.join(process.cwd(), '.flask-port');
-      if (fs.existsSync(portFile)) {
-        flaskPort = fs.readFileSync(portFile, 'utf8').trim();
-      } else {
-        flaskPort = 'File not found';
-      }
-    } catch (error) {
-      flaskPort = `Error reading file: ${error instanceof Error ? error.message : String(error)}`;
-    }
-    
-    // Check Flask API availability
-    let flaskHealth = 'Not checked';
-    try {
-      for (const port of [flaskPort, '5338', '5336', '5337', '5000']) {
-        if (!port || port === 'File not found' || port.startsWith('Error')) continue;
-        
-        try {
-          const timeout = 1000;
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), timeout);
-          
-          const response = await fetch(`http://localhost:${port}/api/health`, {
-            method: 'GET',
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (response.ok) {
-            const data = await response.json();
-            flaskHealth = `Available on port ${port}: ${JSON.stringify(data)}`;
-            break;
-          }
-        } catch (portError) {
-          console.error(`Error checking port ${port}:`, portError);
-          // Continue to next port
-        }
-      }
-    } catch (error) {
-      flaskHealth = `Error checking health: ${error instanceof Error ? error.message : String(error)}`;
-    }
-    
-    // Get request headers for troubleshooting
-    const headersList = headers();
-    const userAgent = headersList.get('user-agent') || 'Unknown';
-    const host = headersList.get('host') || 'Unknown';
-    
-    // Get Next.js configuration
-    const nextConfig = {
-      basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
-      apiBasePath: process.env.NEXT_PUBLIC_API_BASE_PATH || '',
-    };
-    
-    return NextResponse.json({
-      nextjs: {
-        version: nextVersion,
-        nodeEnv,
-        config: nextConfig
-      },
-      flask: {
-        configuredPort: flaskPort,
-        health: flaskHealth
-      },
-      request: {
-        userAgent,
-        host
-      },
-      timestamp: new Date().toISOString()
+  // Get the environment configuration
+  const env = process.env.NODE_ENV || 'development';
+  const flaskPort = process.env.FLASK_PORT || 5338;
+  
+  // Check the main Flask port
+  const mainPortCheck = await checkPort(Number(flaskPort));
+  
+  // Create a map of port checks
+  const alternateChecks: Record<string, any> = {};
+  
+  // Check alternative ports in parallel
+  const alternatePortPromises = POSSIBLE_FLASK_PORTS
+    .filter(port => port !== Number(flaskPort))
+    .map(async (port) => {
+      alternateChecks[`port_${port}`] = await checkPort(port);
     });
-  } catch (error) {
-    return NextResponse.json(
-      { 
-        error: 'Failed to get configuration', 
-        details: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : 'No stack trace'
-      }, 
-      { status: 500 }
-    );
-  }
+  
+  await Promise.all(alternatePortPromises);
+  
+  // Build the response
+  const config = {
+    env,
+    nextjs: {
+      version: process.env.NEXT_PUBLIC_APP_VERSION || 'unknown',
+      timestamp: new Date().toISOString()
+    },
+    flask: {
+      configuredPort: flaskPort,
+      health: mainPortCheck.success 
+        ? `Available on port ${flaskPort}`
+        : `Not available on configured port ${flaskPort}. Check alternative ports.`,
+      alternativePorts: Object.entries(alternateChecks)
+        .filter(([_, check]) => (check as any).success)
+        .map(([port]) => port.replace('port_', ''))
+    },
+    connectionTests: {
+      main: mainPortCheck,
+      alternates: alternateChecks
+    }
+  };
+  
+  return NextResponse.json(config);
 } 

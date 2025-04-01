@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 
 export default function Activities() {
   const [loading, setLoading] = useState(false);
-  const [activities, setActivities] = useState('');
+  const [activities, setActivities] = useState<any[] | string>('');
   const [formData, setFormData] = useState({
     subject: '',
     grade: '',
@@ -31,7 +31,7 @@ export default function Activities() {
       const data = await response.json();
       
       if (data.success) {
-        setActivities(data.activities);
+        setActivities(typeof data.activities === 'string' ? data.activities : JSON.stringify(data.activities, null, 2));
         toast.success('¡Actividades generadas exitosamente!');
       } else {
         toast.error(data.error || 'Error al generar las actividades');
@@ -56,9 +56,17 @@ export default function Activities() {
           throw new Error('Failed to fetch activities');
         }
         const data = await response.json();
-        setActivities(data);
-      } catch {
-        // Handle error silently or show a user-friendly message
+        
+        if (Array.isArray(data)) {
+          setActivities(data);
+        } else if (typeof data === 'object') {
+          setActivities(JSON.stringify(data, null, 2));
+        } else {
+          setActivities(String(data));
+        }
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+        setActivities([]);
       } finally {
         setIsLoading(false);
       }
@@ -193,7 +201,23 @@ export default function Activities() {
         <div className="mt-8">
           <h3 className="text-lg font-medium leading-6 text-gray-900">Actividades Generadas</h3>
           <div className="mt-4 rounded-md bg-white p-6 shadow">
-            <pre className="whitespace-pre-wrap text-sm text-gray-700">{activities}</pre>
+            {typeof activities === 'string' ? (
+              <pre className="whitespace-pre-wrap text-sm text-gray-700">{activities}</pre>
+            ) : Array.isArray(activities) ? (
+              <ul className="list-disc pl-5 space-y-2">
+                {activities.map((activity, index) => (
+                  <li key={index} className="text-sm text-gray-700">
+                    {typeof activity === 'object' ? 
+                      JSON.stringify(activity, null, 2) : 
+                      String(activity)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <pre className="whitespace-pre-wrap text-sm text-gray-700">
+                {JSON.stringify(activities, null, 2)}
+              </pre>
+            )}
           </div>
         </div>
       )}

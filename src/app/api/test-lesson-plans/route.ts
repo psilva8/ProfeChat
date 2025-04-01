@@ -8,6 +8,7 @@ export const preferredRegion = 'home';
 export const dynamic = 'force-dynamic';
 
 // Fallback data for when Flask is unavailable
+// This allows the test routes to work even without a backend
 const FALLBACK_DATA = [
   {
     "content": {
@@ -100,7 +101,7 @@ async function getFlaskPort(): Promise<number> {
 
   // Try the fixed port 5338 first, then fall back to others if needed
   console.log('Trying fixed Flask port 5338 and other common ports...');
-  for (const port of [5338, 5336, 5337, 5339, 5340, 5000]) {
+  for (const port of [5338, 5339, 5340, 5341, 5342, 5336, 5337]) {
     try {
       console.log(`Checking port ${port}...`);
       const response = await fetch(`http://localhost:${port}/api/health`, { 
@@ -130,14 +131,23 @@ async function getFlaskPort(): Promise<number> {
 
   // If we get here, no working Flask server was found
   console.error('No working Flask server found on any port');
-  throw new Error('No working Flask server found');
+  console.log('Returning fallback data');
+  return 0; // Return 0 to indicate no port was found
 }
 
 export async function GET(request: NextRequest) {
+  console.log('GET request to /api/test-lesson-plans');
+  
   try {
     // Try to get port and fetch from Flask first
     try {
       const port = await getFlaskPort();
+      // If port is 0, this means no Flask server was found
+      if (port === 0) {
+        console.log('No Flask server found, using fallback data');
+        return NextResponse.json(FALLBACK_DATA);
+      }
+      
       console.log(`Trying Flask server on port ${port}`);
       
       const response = await fetch(`http://localhost:${port}/api/test-lesson-plans`, {
@@ -151,6 +161,7 @@ export async function GET(request: NextRequest) {
       }
 
       const data = await response.json();
+      console.log('Successfully received data from Flask API');
       return NextResponse.json(data);
     } catch (flaskError) {
       // Log the Flask error but continue to fallback
@@ -162,11 +173,16 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('Unhandled error in API route:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Internal server error', message: error instanceof Error ? error.message : String(error) }, 
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
+  console.log('POST request to /api/test-lesson-plans');
+  
   try {
     // Get the request body
     const body = await request.json();
@@ -175,6 +191,16 @@ export async function POST(request: NextRequest) {
     // Try to get port and forward to Flask first
     try {
       const port = await getFlaskPort();
+      if (port === 0) {
+        console.log('No Flask server found, using fallback response');
+        const newLessonPlan = {
+          id: `test-plan-${Date.now().toString(36)}`,
+          ...body,
+          created_at: new Date().toISOString(),
+        };
+        return NextResponse.json({ success: true, lessonPlan: newLessonPlan });
+      }
+      
       console.log(`Forwarding POST to Flask server on port ${port}`);
       
       const response = await fetch(`http://localhost:${port}/api/test-lesson-plans`, {
@@ -198,18 +224,20 @@ export async function POST(request: NextRequest) {
       console.error('Error connecting to Flask server:', flaskError);
       console.log('Using fallback response instead');
       
-      // Return a mock success response
-      return NextResponse.json({ 
-        success: true, 
-        message: 'POST request received (fallback response)',
-        received: body
-      });
+      // Create a simple fallback response
+      const newLessonPlan = {
+        id: `test-plan-${Date.now().toString(36)}`,
+        ...body,
+        created_at: new Date().toISOString(),
+      };
+      
+      return NextResponse.json({ success: true, lessonPlan: newLessonPlan });
     }
   } catch (error) {
-    console.error('Unhandled error in POST API route:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
+    console.error('Unhandled error in API route:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error', message: error instanceof Error ? error.message : String(error) }, 
+      { status: 500 }
+    );
   }
 } 

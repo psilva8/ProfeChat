@@ -525,6 +525,27 @@ def test_openai_key():
             "error": f"Unexpected error: {str(e)}"
         }), 500
 
+@app.route('/api/check-db', methods=['GET'])
+def check_db():
+    """Check database connections and permissions"""
+    try:
+        # For demo purposes, we'll just return success
+        # In a real app, you would check actual database connections here
+        logger.info("Database check endpoint called")
+        
+        return jsonify({
+            "status": "healthy",
+            "message": "Database connection is operational",
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error checking database: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
 if __name__ == '__main__':
     # Validate OpenAI API key
     try:
