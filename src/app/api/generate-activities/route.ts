@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
       console.error('Missing required parameters', { subject, grade, topic });
       return NextResponse.json({ 
         success: false, 
-        error: 'Missing required parameters: subject, grade, and topic are required' 
+        error: 'Missing required parameters: subject, grade, and topic are required',
+        data: [] // Include empty data array to prevent frontend errors
       }, { status: 400 });
     }
     
@@ -33,44 +34,70 @@ export async function POST(request: NextRequest) {
     // If in a build environment or Vercel deployment, return test data
     if (isBuildEnvironment()) {
       console.log('Using test activities data (build environment or Vercel)');
+      
+      // Filter test activities to match the requested subject if possible
+      const filteredActivities = getTestActivities(subject, grade, topic);
+      
       return NextResponse.json({
         success: true,
-        data: TEST_ACTIVITIES,
-        message: 'Generated activities using test data'
+        data: filteredActivities,
+        message: 'Generated activities using test data (build environment)'
       });
     }
     
     // In development, try to connect to Flask API
     try {
       const flaskUrl = getFlaskUrl();
-      console.log(`Attempting to connect to Flask API at: ${flaskUrl}/api/generate-activities`);
       
-      const response = await fetch(`${flaskUrl}/api/generate-activities`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ subject, grade, topic }),
-      });
-      
-      if (!response.ok) {
-        console.error(`Flask API error: ${response.status} ${response.statusText}`);
-        throw new Error(`Flask API returned status ${response.status}`);
+      // If no Flask URL is configured, return test data
+      if (!flaskUrl) {
+        console.log('No Flask URL configured, returning test data');
+        return NextResponse.json({
+          success: true,
+          data: getTestActivities(subject, grade, topic),
+          message: 'Generated activities using test data (no Flask URL)'
+        });
       }
       
-      const flaskResponse = await response.json();
-      console.log('Flask API response:', flaskResponse);
+      console.log(`Attempting to connect to Flask API at: ${flaskUrl}/api/generate-activities`);
       
-      // Transform the response to ensure it has the correct structure
-      // The frontend expects a 'data' property with an array of activities
-      const formattedResponse = {
-        success: true,
-        data: flaskResponse.activities || flaskResponse.data || [],
-        message: flaskResponse.message || 'Activities generated successfully'
-      };
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      return NextResponse.json(formattedResponse);
-      
+      try {
+        const response = await fetch(`${flaskUrl}/api/generate-activities`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ subject, grade, topic }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          console.error(`Flask API error: ${response.status} ${response.statusText}`);
+          throw new Error(`Flask API returned status ${response.status}`);
+        }
+        
+        const flaskResponse = await response.json();
+        console.log('Flask API response:', flaskResponse);
+        
+        // Transform the response to ensure it has the correct structure
+        // The frontend expects a 'data' property with an array of activities
+        const formattedResponse = {
+          success: true,
+          data: flaskResponse.activities || flaskResponse.data || [],
+          message: flaskResponse.message || 'Activities generated successfully'
+        };
+        
+        return NextResponse.json(formattedResponse);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError; // Re-throw for the outer catch block
+      }
     } catch (error) {
       console.error('Error connecting to Flask API:', error);
       console.log('Falling back to test activities data');
@@ -78,7 +105,7 @@ export async function POST(request: NextRequest) {
       // Return test data as fallback
       return NextResponse.json({
         success: true,
-        data: TEST_ACTIVITIES,
+        data: getTestActivities(subject, grade, topic),
         message: 'Generated activities using test data (Flask API unavailable)'
       });
     }
@@ -93,6 +120,30 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Helper function to get filtered test activities based on subject, grade, and topic
+ */
+function getTestActivities(subject: string, grade: string, topic: string) {
+  // Find activities that match the requested parameters
+  const matchingActivities = TEST_ACTIVITIES.filter(activity => {
+    // Basic matching - more sophisticated matching could be implemented
+    if (subject.toLowerCase().includes('mate') && activity.title.includes('fracciones')) {
+      return true;
+    }
+    if (subject.toLowerCase().includes('comun') && activity.title.includes('narraciones')) {
+      return true;
+    }
+    if (subject.toLowerCase().includes('ciencia') && activity.title.includes('agua')) {
+      return true;
+    }
+    // Default to returning all test activities if no matches found
+    return true;
+  });
+  
+  // Always return at least some activities
+  return matchingActivities.length > 0 ? matchingActivities : TEST_ACTIVITIES;
 }
 
 /**

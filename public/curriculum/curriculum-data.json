@@ -1,0 +1,159 @@
+[
+  {
+    "title": "Matemática",
+    "description": "El área de Matemática promueve el desarrollo de la competencia para plantear y resolver problemas con actitud crítica.",
+    "grade": "PRIMARIA",
+    "competencies": [
+      {
+        "name": "Resuelve problemas de cantidad",
+        "description": "Consiste en que el estudiante solucione problemas o plantee nuevos problemas que le demanden construir y comprender las nociones de número.",
+        "standards": [
+          {
+            "gradeLevel": "Ciclo III (1º y 2º grado de primaria)",
+            "description": "Resuelve problemas referidos a acciones de juntar, separar, agregar, quitar, igualar y comparar cantidades.",
+            "criteria": [
+              "Traduce cantidades a expresiones numéricas",
+              "Comunica su comprensión sobre los números y las operaciones",
+              "Usa estrategias y procedimientos de estimación y cálculo",
+              "Argumenta afirmaciones sobre las relaciones numéricas y las operaciones"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Resuelve problemas de regularidad, equivalencia y cambio",
+        "description": "Consiste en que el estudiante logre caracterizar equivalencias y generalizar regularidades mediante reglas y álgebra.",
+        "standards": [
+          {
+            "gradeLevel": "Ciclo III (1º y 2º grado de primaria)",
+            "description": "Resuelve problemas que presentan equivalencias o regularidades, traduciéndolas a igualdades con expresiones aditivas.",
+            "criteria": [
+              "Traduce datos y condiciones a expresiones algebraicas y gráficas",
+              "Comunica su comprensión sobre las relaciones algebraicas",
+              "Usa estrategias y procedimientos para encontrar equivalencias y reglas generales",
+              "Argumenta afirmaciones sobre relaciones de cambio y equivalencia"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Comunicación",
+    "description": "El área de Comunicación promueve el desarrollo comunicativo para la comprensión y construcción de la realidad.",
+    "grade": "PRIMARIA",
+    "competencies": [
+      {
+        "name": "Se comunica oralmente en su lengua materna",
+        "description": "Se define como una interacción dinámica entre uno o más interlocutores para expresar y comprender ideas y emociones.",
+        "standards": [
+          {
+            "gradeLevel": "Ciclo III (1º y 2º grado de primaria)",
+            "description": "Se comunica oralmente mediante diversos tipos de textos; identifica información explícita, infiere e interpreta hechos y temas.",
+            "criteria": [
+              "Obtiene información del texto oral",
+              "Infiere e interpreta información del texto oral",
+              "Adecúa, organiza y desarrolla el texto de forma coherente y cohesionada",
+              "Utiliza recursos no verbales y paraverbales de forma estratégica",
+              "Interactúa estratégicamente con distintos interlocutores",
+              "Reflexiona y evalúa la forma, el contenido y contexto del texto oral"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Lee diversos tipos de textos escritos en su lengua materna",
+        "description": "Esta competencia se define como una interacción dinámica entre el lector, el texto y los contextos socioculturales.",
+        "standards": [
+          {
+            "gradeLevel": "Ciclo III (1º y 2º grado de primaria)",
+            "description": "Lee diversos tipos de textos que presentan estructura simple con algunos elementos complejos y vocabulario variado.",
+            "criteria": [
+              "Obtiene información del texto escrito",
+              "Infiere e interpreta información del texto",
+              "Reflexiona y evalúa la forma, el contenido y contexto del texto"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Ciencia y Tecnología",
+    "description": "El área de Ciencia y Tecnología promueve el desarrollo de la indagación y alfabetización científica y tecnológica.",
+    "grade": "SECUNDARIA",
+    "competencies": [
+      {
+        "name": "Indaga mediante métodos científicos para construir sus conocimientos",
+        "description": "El estudiante es capaz de construir su conocimiento acerca del funcionamiento y estructura del mundo natural y artificial.",
+        "standards": [
+          {
+            "gradeLevel": "Ciclo VI (1º y 2º de secundaria)",
+            "description": "Indaga a partir de preguntas sobre una situación y argumenta la influencia de las variables, formula una hipótesis y diseña un plan de indagación.",
+            "criteria": [
+              "Problematiza situaciones para hacer indagación",
+              "Diseña estrategias para hacer indagación",
+              "Genera y registra datos e información",
+              "Analiza datos e información",
+              "Evalúa y comunica el proceso y resultados de su indagación"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía",
+        "description": "El estudiante es capaz de comprender conocimientos científicos relacionados a hechos o fenómenos y los utiliza para generar argumentos.",
+        "standards": [
+          {
+            "gradeLevel": "Ciclo VI (1º y 2º de secundaria)",
+            "description": "Explica, con base en evidencia con respaldo científico, las relaciones entre las propiedades de los materiales y los cambios de la materia con la estructura de sus partículas.",
+            "criteria": [
+              "Comprende y usa conocimientos sobre los seres vivos, materia y energía, biodiversidad, Tierra y universo",
+              "Evalúa las implicancias del saber y del quehacer científico y tecnológico"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Personal Social",
+    "description": "El área de Personal Social busca contribuir al desarrollo integral de los estudiantes como personas autónomas y miembros conscientes de la sociedad.",
+    "grade": "INICIAL",
+    "competencies": [
+      {
+        "name": "Construye su identidad",
+        "description": "El estudiante conoce y valora su cuerpo, su forma de sentir, de pensar y de actuar desde el reconocimiento de sus identidades.",
+        "standards": [
+          {
+            "gradeLevel": "Ciclo II (3-5 años)",
+            "description": "Construye su identidad al tomar conciencia de los aspectos que lo hacen único y se identifica con características físicas y preferencias.",
+            "criteria": [
+              "Se valora a sí mismo",
+              "Autorregula sus emociones",
+              "Reflexiona y argumenta éticamente",
+              "Vive su sexualidad de manera integral y responsable"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Convive y participa democráticamente en la búsqueda del bien común",
+        "description": "El estudiante actúa en la sociedad relacionándose con los demás de manera justa y equitativa.",
+        "standards": [
+          {
+            "gradeLevel": "Ciclo II (3-5 años)",
+            "description": "Convive y participa democráticamente cuando interactúa de manera respetuosa con sus compañeros y se relaciona con adultos de su entorno.",
+            "criteria": [
+              "Interactúa con todas las personas",
+              "Construye normas y asume acuerdos y leyes",
+              "Maneja conflictos de manera constructiva",
+              "Delibera sobre asuntos públicos",
+              "Participa en acciones que promueven el bienestar común"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

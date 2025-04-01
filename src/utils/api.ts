@@ -7,8 +7,14 @@ export function getFlaskUrl(): string {
   // Check if we're in a server environment
   if (typeof window === 'undefined') {
     try {
+      // Check if we're in a build or production environment
+      if (isBuildEnvironment()) {
+        console.log('Build environment detected, skipping Flask connection');
+        return ''; // No Flask connection in build environment
+      }
+      
       // Use environment variable or default
-      let FLASK_PORT = process.env.FLASK_PORT || 5336;
+      let FLASK_PORT = process.env.FLASK_PORT || '5336';
       
       // Try to read from .flask-port file in development
       if (process.env.NODE_ENV === 'development') {
@@ -19,6 +25,8 @@ export function getFlaskUrl(): string {
           if (fs.existsSync(portFile)) {
             FLASK_PORT = fs.readFileSync(portFile, 'utf8').trim();
             console.log(`Using Flask port from .flask-port file: ${FLASK_PORT}`);
+          } else {
+            console.log('No .flask-port file found, using default port:', FLASK_PORT);
           }
         } catch (err) {
           console.warn('Error reading .flask-port file:', err);
@@ -27,11 +35,12 @@ export function getFlaskUrl(): string {
       
       // For Vercel deployments, this could be a deployed Flask API URL
       const FLASK_API_URL = process.env.FLASK_API_URL || `http://localhost:${FLASK_PORT}`;
+      console.log('Flask API URL configured as:', FLASK_API_URL);
       
       return FLASK_API_URL;
     } catch (error) {
       console.error('Error determining Flask URL:', error);
-      return 'http://localhost:5336'; // Fallback
+      return ''; // Return empty string as fallback to avoid connection attempts
     }
   }
   
@@ -46,7 +55,22 @@ export function getFlaskUrl(): string {
  * Check if we're in a build environment (Vercel build or local build)
  */
 export function isBuildEnvironment(): boolean {
-  return !!process.env.VERCEL || process.env.NODE_ENV === 'production';
+  // Check for Vercel environment
+  if (process.env.VERCEL) {
+    return true;
+  }
+  
+  // Check for production environment
+  if (process.env.NODE_ENV === 'production') {
+    return true;
+  }
+  
+  // Check for CI/CD environments
+  if (process.env.CI || process.env.GITHUB_ACTIONS) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**

@@ -34,56 +34,79 @@ export async function GET() {
     if (isBuildEnvironment()) {
       console.log('Skipping Flask API check in build environment');
       services.flask = { 
-        status: 'unknown', 
-        message: 'Flask API check skipped in build environment' 
+        status: 'skipped', 
+        message: 'Flask API check skipped in build/production environment' 
       };
       services.database = {
-        status: 'online',
-        message: 'Database is connected'
+        status: 'simulated',
+        message: 'Database connection simulated in build/production environment'
+      };
+      services.openai = {
+        status: 'simulated',
+        message: 'OpenAI API connection simulated in build/production environment'
       };
     } else {
       // Try to connect to Flask API for status check
       try {
         const flaskUrl = getFlaskUrl();
-        console.log(`Checking Flask API status at: ${flaskUrl}/api/status`);
         
-        // Add timeout to avoid hanging too long
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
-        const response = await fetch(`${flaskUrl}/api/status`, {
-          method: 'GET',
-          signal: controller.signal,
-          cache: 'no-store',
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`Flask API returned status ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Flask status response:', data);
-        
-        // Update services with Flask status data
-        services.flask = {
-          status: 'online',
-          message: 'Flask API is running'
-        };
-        
-        if (data.database) {
+        // If Flask URL is empty, skip the check
+        if (!flaskUrl) {
+          console.log('Flask URL is empty, skipping API check');
+          services.flask = { 
+            status: 'skipped', 
+            message: 'Flask API check skipped (no Flask URL configured)' 
+          };
           services.database = {
-            status: data.database.status === 'ok' ? 'online' : 'offline',
-            message: data.database.message || 'Database status reported by Flask'
+            status: 'unknown',
+            message: 'Database status unknown without Flask'
           };
-        }
-        
-        if (data.openai) {
-          services.openai = {
-            status: data.openai.status === 'ok' ? 'online' : 'offline',
-            message: data.openai.message || 'OpenAI status reported by Flask'
-          };
+        } else {
+          console.log(`Checking Flask API status at: ${flaskUrl}/api/status`);
+          
+          // Add timeout to avoid hanging too long
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
+          
+          try {
+            const response = await fetch(`${flaskUrl}/api/status`, {
+              method: 'GET',
+              signal: controller.signal,
+              cache: 'no-store',
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+              throw new Error(`Flask API returned status ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Flask status response:', data);
+            
+            // Update services with Flask status data
+            services.flask = {
+              status: 'online',
+              message: 'Flask API is running'
+            };
+            
+            if (data.database) {
+              services.database = {
+                status: data.database.status === 'ok' ? 'online' : 'offline',
+                message: data.database.message || 'Database status reported by Flask'
+              };
+            }
+            
+            if (data.openai) {
+              services.openai = {
+                status: data.openai.status === 'ok' ? 'online' : 'offline',
+                message: data.openai.message || 'OpenAI status reported by Flask'
+              };
+            }
+          } catch (fetchError) {
+            clearTimeout(timeoutId);
+            throw fetchError; // Re-throw to be caught by the outer try-catch
+          }
         }
       } catch (error) {
         console.error('Error connecting to Flask API:', error);
@@ -93,6 +116,17 @@ export async function GET() {
           status: 'offline',
           message: `Failed to connect to Flask API: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
+        
+        // Use fallback data
+        services.database = {
+          status: 'unknown',
+          message: 'Database status unknown (Flask connection failed)'
+        };
+        
+        services.openai = {
+          status: 'unknown',
+          message: 'OpenAI status unknown (Flask connection failed)'
+        };
       }
     }
     
@@ -100,7 +134,9 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       timestamp,
-      services
+      services,
+      environment: process.env.NODE_ENV || 'development',
+      is_build: isBuildEnvironment()
     });
   } catch (error) {
     console.error('Error in health check:', error);
@@ -110,7 +146,9 @@ export async function GET() {
       success: false,
       timestamp,
       error: `Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      services
+      services,
+      environment: process.env.NODE_ENV || 'development',
+      is_build: isBuildEnvironment()
     }, { status: 500 });
   }
 } 
