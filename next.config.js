@@ -1,31 +1,49 @@
 /** @type {import('next').NextConfig} */
+const fs = require('fs');
+const path = require('path');
+
+// Function to get Flask port from file or environment variable
+const getFlaskPort = () => {
+  try {
+    // Try to read from .flask-port file
+    const portFile = path.join(__dirname, '.flask-port');
+    if (fs.existsSync(portFile)) {
+      const port = fs.readFileSync(portFile, 'utf8').trim();
+      console.log(`Next.js config using Flask port from file: ${port}`);
+      return port;
+    }
+  } catch (err) {
+    console.warn('Error reading .flask-port file:', err);
+  }
+  
+  // Fallback to environment variable or default
+  const port = process.env.FLASK_SERVER_PORT || '5336';
+  console.log(`Next.js config using Flask port from env/default: ${port}`);
+  return port;
+};
+
 const nextConfig = {
+  reactStrictMode: true,
   images: {
-    domains: [
-      'lh3.googleusercontent.com',
-      'avatars.githubusercontent.com',
-      'github.com',
-      'images.unsplash.com'
-    ]
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+      },
+    ],
   },
   async rewrites() {
-    if (process.env.NODE_ENV === 'development') {
-      return [
-        // Keep NextAuth routes handled by Next.js (must come first)
-        {
-          source: '/api/auth/:path*',
-          destination: '/api/auth/:path*',
-        },
-        // Forward all other API routes to Flask
-        {
-          source: '/api/:path*',
-          destination: 'http://localhost:5336/api/:path*',
-        }
-      ];
-    }
+    const flaskPort = getFlaskPort();
+    const flaskUrl = `http://localhost:${flaskPort}`;
     
-    // In production, no rewrites needed
-    return [];
+    console.log(`Setting up API proxy to Flask at: ${flaskUrl}`);
+    
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${flaskUrl}/api/:path*`,
+      },
+    ];
   },
   eslint: {
     // Warning ESLint errors don't fail the build

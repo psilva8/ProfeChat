@@ -1,224 +1,164 @@
 #!/usr/bin/env node
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const readline = require('readline');
 
-// Path to store the detected Flask port
-const portFilePath = path.join(__dirname, '..', '.flask-port');
+const FLASK_DIR = path.join(__dirname, '..', 'api', 'python');
+const VENV_DIR = path.join(FLASK_DIR, 'venv');
+const FLASK_PORT_FILE = path.join(__dirname, '..', '.flask-port');
 
-// Try to kill any existing Flask processes
-function killExistingFlaskProcesses() {
-  try {
-    console.log('Attempting to kill any existing Flask processes...');
-    execSync('pkill -f "python.*app\\.py"', { stdio: 'ignore' });
-    console.log('Successfully killed existing Flask processes');
-  } catch (error) {
-    // It's okay if no processes were killed
-    console.log('No existing Flask processes found to kill');
-  }
-}
+// Kill any existing Flask processes
+const killExistingProcesses = () => {
+  console.log('Attempting to kill any existing Flask processes...');
 
-// Generate a random port in the range 5340-5399
-function getRandomPort() {
-  return Math.floor(Math.random() * 60) + 5340;
-}
+  return new Promise((resolve) => {
+    // Find and kill processes on commonly used ports
+    const ports = [5336, 5338, 5390, 5391, 5392, 5393];
+    const killCmd = process.platform === 'win32' 
+      ? `for /f "tokens=5" %a in ('netstat -ano ^| findstr ${ports.join(' ')}') do taskkill /F /PID %a`
+      : `lsof -ti:${ports.join(',')} | xargs kill -9 || true`;
+    
+    exec(killCmd, (error) => {
+      if (error) {
+        console.warn('No existing Flask processes found or unable to kill them');
+      } else {
+        console.log('Successfully killed existing Flask processes');
+      }
+      resolve();
+    });
+  });
+};
 
-console.log('Installing Flask dependencies...');
-
-// Kill any existing Flask processes to avoid port conflicts
-killExistingFlaskProcesses();
-
-// Install Flask dependencies first
-const installDeps = spawn('python3', ['-m', 'pip', 'install', '-r', 'api/python/requirements.txt'], {
-  stdio: 'inherit'
-});
-
-installDeps.on('close', (code) => {
-  if (code !== 0) {
-    console.error(`Failed to install dependencies. Exit code: ${code}`);
-    process.exit(code);
-  }
+// Install Flask dependencies
+const installDependencies = () => {
+  console.log('Installing Flask dependencies...');
   
+  return new Promise((resolve, reject) => {
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const pip = spawn(pythonCmd, ['-m', 'pip', 'install', '-r', path.join(FLASK_DIR, 'requirements.txt')]);
+    
+    pip.stdout.on('data', (data) => {
+      console.log(`Flask: ${data.toString().trim()}`);
+    });
+    
+    pip.stderr.on('data', (data) => {
+      console.error(`Flask: ${data.toString().trim()}`);
+    });
+    
+    pip.on('close', (code) => {
+      if (code !== 0) {
+        console.warn(`Flask dependencies installation exited with code ${code}`);
+      }
+      resolve();
+    });
+  });
+};
+
+// Start Flask server and capture its port
+const startFlaskServer = () => {
   console.log('Starting Flask server...');
   
-  // Generate a random port to avoid conflicts
-  const randomPort = getRandomPort();
-  
-  // Set environment variable for Flask server
-  const env = { ...process.env, FLASK_SERVER_PORT: randomPort.toString() };
-  
-  // Start the Flask process with the custom port
-  const flaskProcess = spawn('python3', ['api/python/app.py'], {
-    stdio: ['inherit', 'pipe', 'inherit'], // Only pipe stdout
-    env: env
-  });
-  
-  // Variable to track if we've found and saved the port
-  let portFound = false;
-  
-  // Listen for Flask server output
-  flaskProcess.stdout.on('data', (data) => {
-    const output = data.toString();
-    console.log(`Flask: ${output.trim()}`);
-    
-    // Look for the port number in the output
-    const portMatch = output.match(/FLASK_SERVER_PORT=(\d+)/);
-    if (portMatch && portMatch[1]) {
-      const port = portMatch[1];
-      console.log(`Detected Flask server running on port: ${port}`);
-      
-      try {
-        // Save port to a file for other processes to read
-        fs.writeFileSync(portFilePath, port, 'utf8');
-        console.log(`Successfully wrote port ${port} to ${portFilePath}`);
-        
-        // Set an environment variable in case child processes need it
-        process.env.FLASK_SERVER_PORT = port;
-        portFound = true;
-      } catch (err) {
-        console.error(`Error writing port to file: ${err.message}`);
+  return new Promise((resolve, reject) => {
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const flask = spawn(pythonCmd, [path.join(FLASK_DIR, 'app.py')], {
+      env: {
+        ...process.env,
+        // Set a random port between 5400-5499 to avoid conflicts
+        FLASK_SERVER_PORT: process.env.FLASK_SERVER_PORT || (5400 + Math.floor(Math.random() * 100))
       }
-    }
+    });
     
-    // Check for the success message indicating Flask is running
-    if (output.includes('Running on http://127.0.0.1:')) {
-      console.log('Flask server is running successfully');
-    }
+    // Create readline interface to read Flask output line by line
+    const rl = readline.createInterface({
+      input: flask.stdout,
+      crlfDelay: Infinity
+    });
     
-    // Check for error messages
-    if (output.includes('Address already in use')) {
-      console.error('Flask port conflict detected. Restarting with a different port...');
-      flaskProcess.kill();
+    let flaskPort = null;
+    let serverRunning = false;
+    
+    // Listen for the Flask port in the output
+    rl.on('line', (line) => {
+      console.log(`Flask: ${line}`);
       
-      // Try again with a different random port
-      setTimeout(() => {
-        restartFlaskWithRandomPort();
-      }, 1000);
-    }
-  });
-  
-  flaskProcess.on('error', (err) => {
-    console.error(`Failed to start Flask process: ${err.message}`);
-  });
-  
-  flaskProcess.on('close', (code) => {
-    if (code !== 0 && code !== null) {
-      console.error(`Flask process exited with code ${code}`);
+      // Try to extract the Flask port
+      const portMatch = line.match(/FLASK_SERVER_PORT=(\d+)/);
+      if (portMatch && portMatch[1]) {
+        flaskPort = portMatch[1];
+        console.log(`Detected Flask server running on port: ${flaskPort}`);
+        
+        // Save port to file for other processes to use
+        fs.writeFileSync(FLASK_PORT_FILE, flaskPort);
+        console.log(`Successfully wrote port ${flaskPort} to ${FLASK_PORT_FILE}`);
+      }
       
-      // If it wasn't a port conflict (which we handle specially above),
-      // try once more with a different port
-      if (!portFound) {
-        console.log('Attempting to restart Flask with a different port...');
+      // Check if the server is running
+      if (line.includes('Running on http://127.0.0.1:') || line.includes('Debugger PIN:')) {
+        serverRunning = true;
+      }
+      
+      // Resolve when we've detected both the port and the server running
+      if (flaskPort && serverRunning && !resolved) {
+        console.log('Flask server is running successfully');
+        resolved = true;
+        resolve(flaskPort);
+      }
+    });
+    
+    // Handle errors
+    flask.stderr.on('data', (data) => {
+      const errorText = data.toString().trim();
+      console.error(`Flask: ${errorText}`);
+      
+      // Check for port already in use error
+      if (errorText.includes('Address already in use') && !resolved) {
+        console.error(`Port in use error detected. Killing process and trying again...`);
+        resolved = true;
+        
+        // Kill flask process
+        if (process.platform === 'win32') {
+          spawn('taskkill', ['/pid', flask.pid, '/f', '/t']);
+        } else {
+          process.kill(flask.pid);
+        }
+        
+        // Try again with a different port
         setTimeout(() => {
-          restartFlaskWithRandomPort();
+          process.env.FLASK_SERVER_PORT = 5400 + Math.floor(Math.random() * 100);
+          resolve(startFlaskServer());
         }, 1000);
       }
-    }
-  });
-  
-  // Function to restart Flask with a new random port
-  function restartFlaskWithRandomPort() {
-    // Generate a new random port
-    const newRandomPort = getRandomPort();
-    console.log(`Trying again with port ${newRandomPort}...`);
-    
-    // Set environment variable for Flask server
-    const newEnv = { ...process.env, FLASK_SERVER_PORT: newRandomPort.toString() };
-    
-    // Start the Flask process with the new port
-    const newFlaskProcess = spawn('python3', ['api/python/app.py'], {
-      stdio: ['inherit', 'pipe', 'inherit'], // Only pipe stdout
-      env: newEnv
     });
     
-    // Listen for output from the new process
-    newFlaskProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      console.log(`Flask: ${output.trim()}`);
-      
-      // Look for the port number in the output
-      const portMatch = output.match(/FLASK_SERVER_PORT=(\d+)/);
-      if (portMatch && portMatch[1]) {
-        const port = portMatch[1];
-        console.log(`Detected Flask server running on port: ${port}`);
-        
-        try {
-          // Save port to a file for other processes to read
-          fs.writeFileSync(portFilePath, port, 'utf8');
-          console.log(`Successfully wrote port ${port} to ${portFilePath}`);
-          
-          // Set an environment variable in case child processes need it
-          process.env.FLASK_SERVER_PORT = port;
-        } catch (err) {
-          console.error(`Error writing port to file: ${err.message}`);
-        }
-      }
-    });
-  }
-  
-  // Set a timeout to exit if port isn't detected
-  const timeoutId = setTimeout(() => {
-    if (!portFound) {
-      console.error('Timed out waiting for Flask server to start and report its port');
-      
-      // Try to detect Flask port by checking common ports
-      tryDetectFlaskPort().then(port => {
-        if (port) {
-          console.log(`Detected Flask server running on port ${port} using fallback method`);
-          fs.writeFileSync(portFilePath, String(port), 'utf8');
-          console.log(`Wrote port ${port} to ${portFilePath}`);
+    let resolved = false;
+    
+    // Handle Flask process exit
+    flask.on('close', (code) => {
+      if (!resolved) {
+        if (code !== 0) {
+          console.error(`Flask server exited with code ${code}`);
+          reject(new Error(`Flask server exited with code ${code}`));
         } else {
-          console.error('Could not detect Flask server port using fallback method');
+          console.log('Flask server exited cleanly');
+          resolve(flaskPort);
         }
-      });
-    }
-  }, 10000);
-  
-  // Clean up on process exit
-  process.on('exit', () => {
-    clearTimeout(timeoutId);
-    
-    // Try to remove the port file
-    try {
-      if (fs.existsSync(portFilePath)) {
-        fs.unlinkSync(portFilePath);
+        resolved = true;
       }
-    } catch (err) {
-      // Ignore errors on cleanup
-    }
+    });
   });
-  
-  // Handle signals
-  process.on('SIGINT', () => {
-    console.log('Stopping Flask server...');
-    flaskProcess.kill('SIGINT');
-    process.exit(0);
-  });
-});
+};
 
-// Function to try to detect Flask port by checking common ports
-async function tryDetectFlaskPort() {
-  const commonPorts = [5000, 5336, 5337, 5338, 5339, 5340, 5341, 5342, 5343, 5344, 5345, 5346, 5347, 5348, 5349, 5350];
-  
-  for (const port of commonPorts) {
-    try {
-      console.log(`Checking if Flask is running on port ${port}...`);
-      const response = await fetch(`http://localhost:${port}/status`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(500) // Timeout after 500ms
-      });
-      
-      if (response.ok) {
-        console.log(`Status check successful on port ${port}`);
-        return port;
-      }
-    } catch (error) {
-      // Ignore errors, just try next port
-      console.log(`Port ${port} check failed: ${error.message}`);
-    }
+// Main function
+async function main() {
+  try {
+    await killExistingProcesses();
+    await installDependencies();
+    await startFlaskServer();
+  } catch (error) {
+    console.error('Error starting Flask server:', error);
+    process.exit(1);
   }
-  
-  return null;
-} 
+}
+
+main(); 

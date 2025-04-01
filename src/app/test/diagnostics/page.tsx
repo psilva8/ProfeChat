@@ -2,399 +2,315 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 
 interface ServiceStatus {
-  name: string;
-  status: 'healthy' | 'error' | 'loading';
+  status: 'online' | 'offline' | 'unknown';
   message: string;
-  timestamp?: string;
-  details?: any;
 }
 
 export default function DiagnosticsPage() {
-  const [services, setServices] = useState<ServiceStatus[]>([
-    { name: 'Next.js App', status: 'loading', message: 'Checking...' },
-    { name: 'Flask API', status: 'loading', message: 'Checking...' },
-    { name: 'OpenAI API', status: 'loading', message: 'Checking...' },
-    { name: 'Database', status: 'loading', message: 'Checking...' },
-    { name: 'Session/Auth', status: 'loading', message: 'Checking...' }
-  ]);
-  const [flaskPort, setFlaskPort] = useState<number | null>(null);
-  const [logMessages, setLogMessages] = useState<string[]>([]);
-  const [activeTest, setActiveTest] = useState<string | null>(null);
+  const [serviceStatuses, setServiceStatuses] = useState({
+    nextjs: { status: 'unknown', message: 'Checking Next.js...' },
+    flask: { status: 'unknown', message: 'Checking Flask API...' },
+    database: { status: 'unknown', message: 'Checking database connection...' },
+    openai: { status: 'unknown', message: 'Checking OpenAI connection...' },
+    auth: { status: 'unknown', message: 'Checking authentication...' }
+  });
   
-  // Helper function to add log messages
+  const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [isRunningTests, setIsRunningTests] = useState(false);
+  
+  // Add a log message
   const addLog = (message: string) => {
-    const timestamp = new Date().toISOString();
-    setLogMessages(prev => [`[${timestamp}] ${message}`, ...prev.slice(0, 99)]);
+    setLogMessages(prev => [
+      `[${new Date().toLocaleTimeString()}] ${message}`,
+      ...prev
+    ]);
   };
   
   // Update service status
-  const updateService = (name: string, status: 'healthy' | 'error' | 'loading', message: string, details?: any) => {
-    setServices(prev => 
-      prev.map(service => 
-        service.name === name 
-          ? { ...service, status, message, details, timestamp: new Date().toISOString() } 
-          : service
-      )
-    );
+  const updateStatus = (service: string, status: ServiceStatus) => {
+    setServiceStatuses(prev => ({
+      ...prev,
+      [service]: status
+    }));
   };
   
-  // Check Next.js app
-  const checkNextJs = async () => {
-    setActiveTest('Next.js App');
-    updateService('Next.js App', 'loading', 'Checking...');
-    addLog('Checking Next.js app...');
-    
-    try {
-      // This is a client-side rendered page, so if we're here, Next.js is working
-      updateService('Next.js App', 'healthy', 'Next.js app is running correctly');
-      addLog('Next.js app check passed');
-    } catch (error) {
-      updateService('Next.js App', 'error', `Next.js error: ${error instanceof Error ? error.message : String(error)}`);
-      addLog(`Next.js app check failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    
-    setActiveTest(null);
+  // Check Next.js service
+  const checkNextJs = () => {
+    addLog('Checking Next.js status...');
+    // Next.js is always running if this page loads
+    updateStatus('nextjs', { 
+      status: 'online', 
+      message: 'Next.js is running correctly' 
+    });
+    return true;
   };
   
-  // Check Flask API
+  // Check Flask API service
   const checkFlaskApi = async () => {
-    setActiveTest('Flask API');
-    updateService('Flask API', 'loading', 'Checking...');
-    addLog('Checking Flask API...');
-    
+    addLog('Checking Flask API status...');
     try {
-      const response = await fetch('/api/config-check');
+      const response = await fetch('/api/health', { 
+        cache: 'no-store',
+        next: { revalidate: 0 } 
+      });
+      
       if (!response.ok) {
-        throw new Error(`API returned status ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      addLog(`Config check response: ${JSON.stringify(data).substring(0, 100)}...`);
+      addLog(`Flask API response: ${JSON.stringify(data.services.flask)}`);
       
-      if (data.flask && data.flask.health.includes('Available')) {
-        const portMatch = data.flask.health.match(/port (\d+)/);
-        if (portMatch && portMatch[1]) {
-          setFlaskPort(parseInt(portMatch[1], 10));
-          addLog(`Detected Flask port: ${portMatch[1]}`);
-        }
-        
-        updateService('Flask API', 'healthy', 'Flask API is running correctly', data.flask);
-        addLog('Flask API check passed');
-      } else {
-        updateService('Flask API', 'error', 'Flask API is not available', data.flask);
-        addLog('Flask API check failed: API not available');
-      }
+      updateStatus('flask', data.services.flask);
+      return data.services.flask.status === 'online';
+      
     } catch (error) {
-      updateService('Flask API', 'error', `Flask API error: ${error instanceof Error ? error.message : String(error)}`);
-      addLog(`Flask API check failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Flask API check failed:', error);
+      addLog(`Flask API check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      updateStatus('flask', { 
+        status: 'offline', 
+        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      });
+      return false;
     }
-    
-    setActiveTest(null);
   };
   
-  // Check OpenAI API
+  // Check OpenAI service
   const checkOpenAI = async () => {
-    setActiveTest('OpenAI API');
-    updateService('OpenAI API', 'loading', 'Checking...');
-    addLog('Checking OpenAI API...');
-    
+    addLog('Checking OpenAI API connection...');
     try {
-      // Use our mock health endpoint instead of Flask proxy
-      const response = await fetch('/api/health');
+      // We check OpenAI via the Flask health endpoint if it's available
+      const response = await fetch('/api/health', { 
+        cache: 'no-store',
+        next: { revalidate: 0 } 
+      });
+      
       if (!response.ok) {
-        throw new Error(`Health API returned status ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      // Our health endpoint is working, so assume OpenAI is available for testing
-      updateService('OpenAI API', 'healthy', 'OpenAI API simulated as working for diagnostics', {
-        note: 'Using mock data for diagnostic purposes'
-      });
-      addLog('OpenAI API check passed using mock data');
+      const data = await response.json();
+      addLog(`OpenAI status from health check: ${JSON.stringify(data.services.openai)}`);
+      
+      updateStatus('openai', data.services.openai);
+      return data.services.openai.status === 'online';
+      
     } catch (error) {
-      updateService('OpenAI API', 'error', `OpenAI check error: ${error instanceof Error ? error.message : String(error)}`);
-      addLog(`OpenAI API check failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('OpenAI check failed:', error);
+      addLog(`OpenAI check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      updateStatus('openai', { 
+        status: 'unknown', 
+        message: 'Could not check OpenAI status due to Flask API connection failure' 
+      });
+      return false;
     }
-    
-    setActiveTest(null);
   };
   
-  // Check Database
+  // Check Database service
   const checkDatabase = async () => {
-    setActiveTest('Database');
-    updateService('Database', 'loading', 'Checking...');
-    addLog('Checking database...');
-    
+    addLog('Checking database connection...');
     try {
-      // Use the lesson plans endpoint as a proxy for database access
-      const dbResponse = await fetch('/api/lesson-plans');
-      if (!dbResponse.ok) {
-        throw new Error(`Lesson plans API returned status ${dbResponse.status}`);
+      // We check database via the health endpoint
+      const response = await fetch('/api/health', { 
+        cache: 'no-store',
+        next: { revalidate: 0 } 
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await dbResponse.json();
+      const data = await response.json();
+      addLog(`Database status from health check: ${JSON.stringify(data.services.database)}`);
       
-      if (data.success) {
-        updateService('Database', 'healthy', 'Database connection simulated as operational for diagnostics', {
-          note: 'Using mock data for diagnostic purposes',
-          sampleData: `Retrieved ${data.lesson_plans?.length || 0} lesson plans`
-        });
-        addLog('Database check passed using mock data');
-      } else {
-        updateService('Database', 'error', `Database simulated error: ${data.error || 'Unknown error'}`, data);
-        addLog(`Database check failed: ${data.error || 'Unknown error'}`);
-      }
+      updateStatus('database', data.services.database);
+      return data.services.database.status === 'online';
+      
     } catch (error) {
-      updateService('Database', 'error', `Database check error: ${error instanceof Error ? error.message : String(error)}`);
-      addLog(`Database check failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Database check failed:', error);
+      addLog(`Database check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      updateStatus('database', { 
+        status: 'unknown', 
+        message: 'Could not check database status due to API connection failure' 
+      });
+      return false;
     }
-    
-    setActiveTest(null);
   };
   
-  // Check Auth
+  // Check Authentication service
   const checkAuth = async () => {
-    setActiveTest('Session/Auth');
-    updateService('Session/Auth', 'loading', 'Checking...');
-    addLog('Checking authentication system...');
-    
+    addLog('Checking authentication service...');
     try {
-      // Use a simple mock rather than checking the actual auth system
-      updateService('Session/Auth', 'healthy', 'Authentication simulated as working for diagnostics', {
-        note: 'Using mock data for diagnostic purposes'
+      // Try to fetch a protected endpoint that requires authentication
+      const response = await fetch('/api/rubrics', { 
+        cache: 'no-store',
+        next: { revalidate: 0 } 
       });
-      addLog('Authentication check passed using mock data');
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          addLog('Authentication required - this is expected for protected endpoints');
+          updateStatus('auth', { 
+            status: 'online', 
+            message: 'Authentication service is working (401 received as expected)' 
+          });
+          return true;
+        } else {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      }
+      
+      // If we get here, the endpoint didn't require auth
+      addLog('Endpoint accessible without authentication - test data mode');
+      updateStatus('auth', { 
+        status: 'online', 
+        message: 'Authentication bypassed (test data mode)' 
+      });
+      return true;
+      
     } catch (error) {
-      updateService('Session/Auth', 'error', `Auth check error: ${error instanceof Error ? error.message : String(error)}`);
-      addLog(`Auth check failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Auth check failed:', error);
+      addLog(`Auth check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      updateStatus('auth', { 
+        status: 'offline', 
+        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      });
+      return false;
     }
-    
-    setActiveTest(null);
   };
   
   // Run all tests
   const runAllTests = async () => {
-    addLog('Running all diagnostics...');
+    setIsRunningTests(true);
+    addLog('--- Starting System Diagnostics ---');
     
-    try {
-      // Use the comprehensive status endpoint first
-      const response = await fetch('/api/dashboard-status');
-      
-      if (response.ok) {
-        const data = await response.json();
-        addLog(`Dashboard status API responded with ${data.services.length} services`);
-        
-        // Update the services from the response
-        data.services.forEach((serviceInfo: any) => {
-          const service = services.find(s => s.name === serviceInfo.service);
-          if (service) {
-            updateService(
-              service.name,
-              serviceInfo.status as 'healthy' | 'error' | 'loading',
-              serviceInfo.message || 'Status updated from dashboard API',
-              serviceInfo
-            );
-            addLog(`Updated ${service.name} status: ${serviceInfo.status}`);
-          }
-        });
-        
-        // Add system info to logs
-        if (data.system) {
-          addLog(`System Info: Node ${data.system.node}, Uptime: ${Math.floor(data.system.uptime / 60)} minutes`);
-        }
-        
-        // Extract Flask port if available
-        const flaskService = data.services.find((s: any) => s.service === 'Flask API');
-        if (flaskService && flaskService.workingPort) {
-          setFlaskPort(flaskService.workingPort);
-          addLog(`Dashboard API reported working Flask port: ${flaskService.workingPort}`);
-        }
-        
-        // For services not properly updated, run individual checks
-        if (services.some(s => s.status === 'loading')) {
-          addLog('Some services still loading, running individual checks...');
-          // Continue with individual checks
-          await checkNextJs();
-          await checkFlaskApi();
-          await checkOpenAI();
-          await checkDatabase();
-          await checkAuth();
-        }
-      } else {
-        addLog(`Dashboard API failed with status ${response.status}, falling back to individual checks`);
-        // Fall back to individual checks
-        await checkNextJs();
-        await checkFlaskApi();
-        await checkOpenAI();
-        await checkDatabase();
-        await checkAuth();
-      }
-    } catch (error) {
-      addLog(`Dashboard API error: ${error instanceof Error ? error.message : String(error)}`);
-      // Fall back to individual checks
-      await checkNextJs();
-      await checkFlaskApi();
-      await checkOpenAI();
-      await checkDatabase();
-      await checkAuth();
-    }
+    // Reset all statuses
+    setServiceStatuses({
+      nextjs: { status: 'unknown', message: 'Checking Next.js...' },
+      flask: { status: 'unknown', message: 'Checking Flask API...' },
+      database: { status: 'unknown', message: 'Checking database connection...' },
+      openai: { status: 'unknown', message: 'Checking OpenAI connection...' },
+      auth: { status: 'unknown', message: 'Checking authentication...' }
+    });
     
-    addLog('All diagnostics completed');
+    // Run tests in sequence with short delays to see progress
+    checkNextJs();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    await checkFlaskApi();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    await checkDatabase();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    await checkOpenAI();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    await checkAuth();
+    
+    addLog('--- Diagnostics Complete ---');
+    setIsRunningTests(false);
   };
   
-  // Initialize with basic checks on load
+  // Run tests on initial load
   useEffect(() => {
-    checkNextJs();
-    checkFlaskApi();
+    runAllTests();
   }, []);
   
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="mb-6">
-        <Link
-          href="/"
-          className="inline-flex items-center text-sm text-accent-600 hover:text-accent-800"
-        >
+    <div className="container mx-auto p-4">
+      <div className="mb-4">
+        <Link href="/dashboard" className="text-blue-600 hover:text-blue-800 flex items-center">
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Back to Home
+          Volver al dashboard
         </Link>
-        <h1 className="text-2xl font-bold mt-4">System Diagnostics</h1>
-        <p className="text-gray-600">
-          Use this page to troubleshoot system connectivity and configuration issues.
-        </p>
       </div>
       
+      <h1 className="text-2xl font-bold mb-6">Diagnóstico del Sistema</h1>
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Service Status Panel */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900">Service Status</h2>
-              <p className="text-sm text-gray-500">Current status of system components</p>
-            </div>
-            <button
+        {/* Service Statuses */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Estado de los Servicios</h2>
+          
+          <div className="space-y-4">
+            {Object.entries(serviceStatuses).map(([service, { status, message }]) => (
+              <div key={service} className="flex items-center justify-between border-b pb-2">
+                <div className="flex items-center">
+                  <div 
+                    className={`h-3 w-3 rounded-full mr-3 ${
+                      status === 'online' ? 'bg-green-500' : 
+                      status === 'offline' ? 'bg-red-500' : 'bg-yellow-500'
+                    }`}
+                  />
+                  <span className="capitalize">{service}</span>
+                </div>
+                <div className="text-sm text-gray-600 max-w-xs text-right">{message}</div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-6">
+            <button 
               onClick={runAllTests}
-              disabled={!!activeTest}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              disabled={isRunningTests}
+              className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 ${
+                isRunningTests ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              {activeTest ? `Testing ${activeTest}...` : 'Run All Tests'}
+              {isRunningTests ? 'Ejecutando...' : 'Ejecutar diagnóstico nuevamente'}
             </button>
           </div>
-          <div className="border-t border-gray-200">
-            <ul className="divide-y divide-gray-200">
-              {services.map((service) => (
-                <li key={service.name} className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span 
-                        className={`h-3 w-3 rounded-full mr-3 ${
-                          service.status === 'healthy' ? 'bg-green-500' : 
-                          service.status === 'error' ? 'bg-red-500' : 
-                          'bg-yellow-500 animate-pulse'
-                        }`} 
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{service.name}</p>
-                        <p className="text-sm text-gray-500">{service.message}</p>
-                        {service.timestamp && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            Last checked: {new Date(service.timestamp).toLocaleTimeString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (service.name === 'Next.js App') checkNextJs();
-                        if (service.name === 'Flask API') checkFlaskApi();
-                        if (service.name === 'OpenAI API') checkOpenAI();
-                        if (service.name === 'Database') checkDatabase();
-                        if (service.name === 'Session/Auth') checkAuth();
-                      }}
-                      disabled={!!activeTest}
-                      className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                    >
-                      Check
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
         
-        {/* Activity Log */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-4 py-5 sm:px-6">
-            <h2 className="text-lg font-medium text-gray-900">Activity Log</h2>
-            <p className="text-sm text-gray-500">Latest diagnostic activity</p>
-          </div>
-          <div className="border-t border-gray-200 p-4">
-            <div className="bg-gray-50 p-3 h-96 overflow-y-auto rounded">
-              {logMessages.length > 0 ? (
-                <ul className="space-y-2">
-                  {logMessages.map((log, i) => (
-                    <li key={i} className="text-xs font-mono whitespace-pre-wrap">{log}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500 text-sm">No logs yet. Run tests to see results.</p>
-              )}
-            </div>
+        {/* System Logs */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Registro de Actividad</h2>
+          
+          <div className="bg-gray-100 p-3 rounded-lg h-[400px] overflow-y-auto font-mono text-sm">
+            {logMessages.length > 0 ? (
+              <ul className="space-y-1">
+                {logMessages.map((log, index) => (
+                  <li key={index} className="break-all">{log}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 italic">No hay mensajes de registro...</p>
+            )}
           </div>
         </div>
+      </div>
+      
+      <div className="mt-8 bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold mb-4">Solución de Problemas</h2>
         
-        {/* Flask Details */}
-        <div className="bg-white shadow rounded-lg overflow-hidden lg:col-span-2">
-          <div className="px-4 py-5 sm:px-6">
-            <h2 className="text-lg font-medium text-gray-900">System Configuration</h2>
-            <p className="text-sm text-gray-500">Details about the current system configuration</p>
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-medium">Error de conexión a Flask API</h3>
+            <p className="text-gray-600">
+              Si ves errores de conexión en el Flask API, asegúrate de que el servidor Flask esté 
+              ejecutándose correctamente. Puedes reiniciar el servidor con <code>npm run dev</code> desde 
+              la carpeta raíz del proyecto.
+            </p>
           </div>
-          <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
-            <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Flask Port</dt>
-                <dd className="mt-1 text-sm text-gray-900">{flaskPort || 'Unknown'}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Next.js Environment</dt>
-                <dd className="mt-1 text-sm text-gray-900">{process.env.NODE_ENV || 'development'}</dd>
-              </div>
-              
-              <div className="sm:col-span-2">
-                <dt className="text-sm font-medium text-gray-500">Test Endpoints</dt>
-                <dd className="mt-1 text-sm text-gray-900">
-                  <div className="space-y-2">
-                    <div>
-                      <span className="font-medium">Lesson Plans:</span>{' '}
-                      <Link href="/test/lesson-plans" className="text-blue-600 hover:underline">
-                        /test/lesson-plans
-                      </Link>
-                    </div>
-                    <div>
-                      <span className="font-medium">Create Lesson Plan:</span>{' '}
-                      <Link href="/test/create-lesson-plan" className="text-blue-600 hover:underline">
-                        /test/create-lesson-plan
-                      </Link>
-                    </div>
-                    <div>
-                      <span className="font-medium">Generate With AI:</span>{' '}
-                      <Link href="/test/generate-plan" className="text-blue-600 hover:underline">
-                        /test/generate-plan
-                      </Link>
-                    </div>
-                    <div>
-                      <span className="font-medium">API Tests:</span>{' '}
-                      <Link href="/test" className="text-blue-600 hover:underline">
-                        /test
-                      </Link>
-                    </div>
-                  </div>
-                </dd>
-              </div>
-            </dl>
+          
+          <div>
+            <h3 className="font-medium">OpenAI API no responde</h3>
+            <p className="text-gray-600">
+              Si OpenAI API no responde, verifica que tu clave API esté configurada correctamente en 
+              el archivo <code>.env</code>. Esta API es necesaria para generar contenido.
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="font-medium">Problemas de autenticación</h3>
+            <p className="text-gray-600">
+              Si ves errores de autenticación, es posible que necesites iniciar sesión nuevamente. 
+              En el modo de prueba, algunos endpoints funcionan sin autenticación para facilitar el diagnóstico.
+            </p>
           </div>
         </div>
       </div>
