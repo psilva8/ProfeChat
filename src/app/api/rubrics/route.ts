@@ -148,35 +148,52 @@ async function getFlaskPort(): Promise<number> {
 export async function GET(request: NextRequest) {
   console.log('Handling GET request to /api/rubrics');
   
-  // Add proper CORS headers
-  return NextResponse.json({
-    success: true,
-    rubrics: TEST_RUBRICS,
-    message: "Test data for diagnostic purposes"
-  }, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    }
-  });
+  try {
+    // Add proper CORS headers
+    return NextResponse.json({
+      success: true,
+      data: TEST_RUBRICS, // Changed from 'rubrics' to 'data' to match frontend expectations
+      message: "Test data for diagnostic purposes"
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
+  } catch (error) {
+    console.error('Error in rubrics GET endpoint:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to fetch rubrics',
+      data: [], // Include empty data array to prevent undefined errors
+      message: error instanceof Error ? error.message : String(error)
+    }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
+  }
 }
 
 export async function POST(request: NextRequest) {
   console.log('Handling POST request to /api/rubrics');
   
   try {
-    const data = await request.json();
+    const requestData = await request.json();
     
     // Log the request for debugging
-    console.log('Request data:', data);
+    console.log('Request data:', requestData);
     
     // In a real app, this would save the data to a database
     
     return NextResponse.json({
       success: true,
       message: "Rubric created successfully",
-      data: data
+      data: requestData
     }, {
       headers: {
         'Access-Control-Allow-Origin': '*',
@@ -189,6 +206,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: false, 
       error: 'Failed to create rubric',
+      data: null, // Include null data to prevent undefined errors
       message: error instanceof Error ? error.message : String(error)
     }, { 
       status: 500,

@@ -58,8 +58,18 @@ export async function POST(request: NextRequest) {
         throw new Error(`Flask API returned status ${response.status}`);
       }
       
-      const data = await response.json();
-      return NextResponse.json(data);
+      const flaskResponse = await response.json();
+      console.log('Flask API response:', flaskResponse);
+      
+      // Transform the response to ensure it has the correct structure
+      // The frontend expects a 'data' property with an array of activities
+      const formattedResponse = {
+        success: true,
+        data: flaskResponse.activities || flaskResponse.data || [],
+        message: flaskResponse.message || 'Activities generated successfully'
+      };
+      
+      return NextResponse.json(formattedResponse);
       
     } catch (error) {
       console.error('Error connecting to Flask API:', error);
@@ -75,7 +85,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in generate-activities API route:', error);
     return NextResponse.json(
-      { success: false, error: `Failed to generate activities: ${error instanceof Error ? error.message : 'Unknown error'}` },
+      { 
+        success: false, 
+        error: `Failed to generate activities: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        data: [] // Include empty data array to prevent undefined errors
+      },
       { status: 500 }
     );
   }
