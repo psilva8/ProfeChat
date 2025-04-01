@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         data: null, // Return null for frontend compatibility
+        lesson_plan: null, // Also include lesson_plan property for backward compatibility
         message: 'Missing required fields: subject, grade, and topic are required'
       }, { status: 400 });
     }
@@ -88,16 +89,19 @@ export async function POST(request: NextRequest) {
       }
     };
     
+    // Return both data and lesson_plan properties for compatibility
     return NextResponse.json({
       success: true,
-      data: lessonPlanData,
+      data: lessonPlanData, // Newer format
+      lesson_plan: lessonPlanData, // Legacy format
       message: 'Plan de lección de muestra generado correctamente'
     });
   } catch (error) {
     console.error('Error in generate-lesson endpoint:', error);
     return NextResponse.json({ 
       success: false,
-      data: null, // Return null for frontend compatibility 
+      data: null, // Return null for frontend compatibility
+      lesson_plan: null, // Also include lesson_plan property for backward compatibility
       error: 'Failed to generate lesson plan',
       message: error instanceof Error ? error.message : String(error)
     }, { status: 500 });

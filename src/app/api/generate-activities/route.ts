@@ -78,21 +78,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         data: [], // Return empty data array for frontend compatibility
+        activities: [], // Also include activities property for backward compatibility
         message: 'Missing required fields: subject, grade, and topic are required'
       }, { status: 400 });
     }
     
-    // Return the sample data with a consistent format
+    // Return the sample data with both formats for compatibility
     return NextResponse.json({
       success: true,
-      data: SAMPLE_GENERATED_ACTIVITIES, // Use "data" property for consistency
+      data: SAMPLE_GENERATED_ACTIVITIES, // Newer format using "data" property
+      activities: SAMPLE_GENERATED_ACTIVITIES, // Legacy format using "activities" property
       message: 'Sample generated activities for diagnostic purposes'
     });
   } catch (error) {
     console.error('Error in generate-activities endpoint:', error);
     return NextResponse.json({ 
       success: false,
-      data: [], // Return empty data array for frontend compatibility 
+      data: [], // Return empty data array for frontend compatibility
+      activities: [], // Also include activities property for backward compatibility
       error: 'Failed to generate activities',
       message: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
