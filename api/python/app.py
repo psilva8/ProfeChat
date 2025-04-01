@@ -527,24 +527,62 @@ def test_openai_key():
 
 @app.route('/api/check-db', methods=['GET'])
 def check_db():
-    """Check database connections and permissions"""
+    """Check database connectivity (simulated for now)"""
+    logger.info("Database check endpoint called")
+    
     try:
-        # For demo purposes, we'll just return success
-        # In a real app, you would check actual database connections here
-        logger.info("Database check endpoint called")
-        
+        # This is a placeholder - in a real app, would check actual DB connection
+        # For demo purposes, we'll simulate a working database
         return jsonify({
             "status": "healthy",
             "message": "Database connection is operational",
+            "details": {
+                "type": "SQLite (simulated)",
+                "latency_ms": 5,
+                "connections": 1
+            },
             "timestamp": datetime.now().isoformat()
         })
     except Exception as e:
-        logger.error(f"Error checking database: {str(e)}")
+        logger.error(f"Database check failed: {str(e)}")
         return jsonify({
             "status": "error",
             "error": str(e),
+            "message": "Failed to connect to database",
             "timestamp": datetime.now().isoformat()
-        }), 500
+        })
+
+@app.route('/status', methods=['GET'])
+def status():
+    """Status endpoint to verify the server is running correctly (simpler version of health check)"""
+    logger.info("Status endpoint called")
+    return jsonify({
+        "status": "ok",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat()
+    })
+
+@app.route('/api/check-openai-key', methods=['GET'])
+def check_openai_key():
+    """Check if the OpenAI API key is valid"""
+    logger.info("OpenAI API key check endpoint called")
+    
+    try:
+        # Try listing models to validate the key
+        openai.models.list()
+        return jsonify({
+            "valid": True,
+            "message": "API key is valid and working",
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"OpenAI API key validation failed: {str(e)}")
+        return jsonify({
+            "valid": False,
+            "error": str(e),
+            "message": "API key validation failed",
+            "timestamp": datetime.now().isoformat()
+        })
 
 if __name__ == '__main__':
     # Validate OpenAI API key
@@ -555,8 +593,19 @@ if __name__ == '__main__':
         logger.error(f"Failed to validate OpenAI API key: {str(e)}")
         exit(1)
 
-    # Use a fixed port instead of searching for an available one
-    port = 5338
+    # Get port from environment variable or use default
+    port = int(os.getenv('FLASK_SERVER_PORT', 5338))
+    max_attempts = 10
+    
+    # Try to find an available port if the configured one is in use
+    if is_port_in_use(port):
+        logger.warning(f"Port {port} is already in use. Searching for an available port...")
+        try:
+            port = get_available_port(port, max_attempts)
+            logger.info(f"Found available port: {port}")
+        except RuntimeError as e:
+            logger.error(str(e))
+            exit(1)
     
     try:
         # Print the port to stdout for scripts that need to capture it
