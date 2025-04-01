@@ -24,6 +24,15 @@ export default function GeneratePlanPage() {
     }));
   };
 
+  // Handle key press for form submission (specifically Enter key)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const form = e.currentTarget.closest('form');
+      if (form) form.requestSubmit();
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
@@ -78,7 +87,7 @@ export default function GeneratePlanPage() {
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
         <div>
           <label htmlFor="subject" className="block text-sm font-medium text-gray-700">
-            Subject
+            Subject <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -87,13 +96,14 @@ export default function GeneratePlanPage() {
             required
             value={formData.subject}
             onChange={handleChange}
+            onKeyDown={handleKeyDown}
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
 
         <div>
           <label htmlFor="grade" className="block text-sm font-medium text-gray-700">
-            Grade
+            Grade <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -102,13 +112,14 @@ export default function GeneratePlanPage() {
             required
             value={formData.grade}
             onChange={handleChange}
+            onKeyDown={handleKeyDown}
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
 
         <div>
           <label htmlFor="topic" className="block text-sm font-medium text-gray-700">
-            Topic
+            Topic <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -117,13 +128,14 @@ export default function GeneratePlanPage() {
             required
             value={formData.topic}
             onChange={handleChange}
+            onKeyDown={handleKeyDown}
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
 
         <div>
           <label htmlFor="duration" className="block text-sm font-medium text-gray-700">
-            Duration (minutes)
+            Duration (minutes) <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
@@ -133,6 +145,7 @@ export default function GeneratePlanPage() {
             min={1}
             value={formData.duration}
             onChange={handleChange}
+            onKeyDown={handleKeyDown}
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
@@ -147,20 +160,27 @@ export default function GeneratePlanPage() {
             rows={3}
             value={formData.objectives}
             onChange={handleChange}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const form = e.currentTarget.closest('form');
+                if (form) form.requestSubmit();
+              }
+            }}
             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
           />
         </div>
 
-        <div>
+        <div className="flex justify-center">
           <button
             type="submit"
             disabled={isGenerating}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 disabled:opacity-50"
+            className="w-full flex justify-center py-3 px-6 border border-transparent rounded-md shadow-lg text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
           >
             {isGenerating ? (
               <>
-                <span className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full" />
-                Generating...
+                <span className="animate-spin mr-2 h-5 w-5 border-t-2 border-b-2 border-white rounded-full" />
+                Generating Lesson Plan...
               </>
             ) : (
               'Generate Lesson Plan'
