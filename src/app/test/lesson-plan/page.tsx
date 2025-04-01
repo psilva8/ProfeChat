@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function TestLessonPlanPage() {
   const [formData, setFormData] = useState({
@@ -14,6 +14,24 @@ export default function TestLessonPlanPage() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [flaskPort, setFlaskPort] = useState<string | null>(null);
+
+  // Fetch Flask port on component mount
+  useEffect(() => {
+    fetch('/api/flask-port')
+      .then(res => res.json())
+      .then(data => {
+        if (data.port) {
+          setFlaskPort(data.port);
+          setDebugInfo(`Flask port set to ${data.port}`);
+        } else {
+          setDebugInfo('Could not determine Flask port');
+        }
+      })
+      .catch(err => {
+        setDebugInfo(`Error fetching Flask port: ${err.message}`);
+      });
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -28,21 +46,27 @@ export default function TestLessonPlanPage() {
     setDebugInfo(`Request started at ${new Date().toISOString()}`);
 
     try {
-      // First test direct Flask API connection
-      const flaskResponse = await fetch(`http://localhost:5336/api/generate-lesson`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      }).catch(err => {
-        setDebugInfo(prev => `${prev}\nDirect Flask API call failed: ${err.message}`);
-        return null;
-      });
+      // Direct Flask API connection is now optional and uses dynamic port if available
+      if (flaskPort) {
+        // Try direct Flask API connection
+        setDebugInfo(prev => `${prev}\nAttempting direct Flask API call on port ${flaskPort}`);
+        const flaskResponse = await fetch(`http://localhost:${flaskPort}/api/generate-lesson`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        }).catch(err => {
+          setDebugInfo(prev => `${prev}\nDirect Flask API call failed: ${err.message}`);
+          return null;
+        });
 
-      if (flaskResponse && flaskResponse.ok) {
-        const flaskData = await flaskResponse.json();
-        setDebugInfo(prev => `${prev}\nDirect Flask API call succeeded: ${flaskData.success}`);
+        if (flaskResponse && flaskResponse.ok) {
+          const flaskData = await flaskResponse.json();
+          setDebugInfo(prev => `${prev}\nDirect Flask API call succeeded: ${flaskData.success}`);
+        }
+      } else {
+        setDebugInfo(prev => `${prev}\nSkipping direct Flask API call (no port available)`);
       }
 
       // Now test the Next.js test API
