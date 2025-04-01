@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 
 interface Activity {
@@ -14,7 +14,8 @@ interface Activity {
   differentiation: string;
 }
 
-export default function NewActivitiesPage() {
+// Activities form component 
+function ActivitiesForm() {
   // Form state
   const [subject, setSubject] = useState('');
   const [grade, setGrade] = useState('');
@@ -260,5 +261,25 @@ export default function NewActivitiesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Loading fallback
+function LoadingFallback() {
+  return (
+    <div className="container mx-auto p-4">
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    </div>
+  );
+}
+
+// Main page component wrapping everything in Suspense
+export default function NewActivitiesPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ActivitiesForm />
+    </Suspense>
   );
 } 

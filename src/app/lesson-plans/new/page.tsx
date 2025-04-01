@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function NewLessonPlanPage() {
+// Create a client component that uses useSearchParams
+function LessonPlanForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -327,5 +328,25 @@ export default function NewLessonPlanPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Create a loading fallback
+function LoadingFallback() {
+  return (
+    <div className="container mx-auto p-4">
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    </div>
+  );
+}
+
+// Main page component that wraps everything in Suspense
+export default function NewLessonPlanPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <LessonPlanForm />
+    </Suspense>
   );
 } 
