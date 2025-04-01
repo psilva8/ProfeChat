@@ -1,0 +1,111 @@
+
+> profechat@0.1.0 dev
+> concurrently "npm run start-flask" "next dev"
+
+[0] 
+[0] > profechat@0.1.0 start-flask
+[0] > node scripts/start-flask.js
+[0] 
+[0] Attempting to kill any existing Flask processes...
+[0] Successfully killed existing Flask processes
+[0] Installing Flask dependencies...
+[1]    ▲ Next.js 14.1.0
+[1]    - Local:        http://localhost:3000
+[1]    - Environments: .env.local, .env
+[1] 
+[1] Next.js config using Flask port from env/default: 5336
+[1] Setting up API proxy to Flask at: http://localhost:5336
+[0] Flask: Defaulting to user installation because normal site-packages is not writeable
+[0] Flask: Requirement already satisfied: flask==3.0.2 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from -r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 1)) (3.0.2)
+[0] Flask: Requirement already satisfied: flask-cors==4.0.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from -r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 2)) (4.0.0)
+[0] Flask: Requirement already satisfied: openai>=1.0.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from -r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (1.68.2)
+[0] Flask: Requirement already satisfied: python-dotenv==1.0.1 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from -r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 4)) (1.0.1)
+[0] Flask: Requirement already satisfied: itsdangerous>=2.1.2 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from flask==3.0.2->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 1)) (2.2.0)
+[0] Flask: Requirement already satisfied: Jinja2>=3.1.2 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from flask==3.0.2->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 1)) (3.1.6)
+[0] Flask: Requirement already satisfied: Werkzeug>=3.0.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from flask==3.0.2->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 1)) (3.1.3)
+[0] Flask: Requirement already satisfied: click>=8.1.3 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from flask==3.0.2->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 1)) (8.1.8)
+[0] Flask: Requirement already satisfied: blinker>=1.6.2 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from flask==3.0.2->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 1)) (1.9.0)
+[0] Flask: Requirement already satisfied: importlib-metadata>=3.6.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from flask==3.0.2->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 1)) (8.6.1)
+[0] Flask: Requirement already satisfied: pydantic<3,>=1.9.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (2.10.6)
+[0] Flask: Requirement already satisfied: typing-extensions<5,>=4.11 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (4.12.2)
+[0] Flask: Requirement already satisfied: anyio<5,>=3.5.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (4.9.0)
+[0] Flask: Requirement already satisfied: tqdm>4 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (4.67.1)
+[0] Flask: Requirement already satisfied: jiter<1,>=0.4.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (0.9.0)
+[0] Flask: Requirement already satisfied: httpx<1,>=0.23.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (0.28.1)
+[0] Flask: Requirement already satisfied: distro<2,>=1.7.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (1.9.0)
+[0] Flask: Requirement already satisfied: sniffio in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (1.3.1)
+[0] Flask: Requirement already satisfied: idna>=2.8 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from anyio<5,>=3.5.0->openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (3.10)
+[0] Flask: Requirement already satisfied: exceptiongroup>=1.0.2 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from anyio<5,>=3.5.0->openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (1.2.2)
+[0] Flask: Requirement already satisfied: certifi in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from httpx<1,>=0.23.0->openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (2025.1.31)
+[0] Flask: Requirement already satisfied: httpcore==1.* in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from httpx<1,>=0.23.0->openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (1.0.7)
+[0] Flask: Requirement already satisfied: h11<0.15,>=0.13 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from httpcore==1.*->httpx<1,>=0.23.0->openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (0.14.0)
+[0] Flask: Requirement already satisfied: zipp>=3.20 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from importlib-metadata>=3.6.0->flask==3.0.2->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 1)) (3.21.0)
+[0] Flask: Requirement already satisfied: MarkupSafe>=2.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from Jinja2>=3.1.2->flask==3.0.2->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 1)) (3.0.2)
+[0] Flask: Requirement already satisfied: annotated-types>=0.6.0 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from pydantic<3,>=1.9.0->openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (0.7.0)
+[0] Flask: Requirement already satisfied: pydantic-core==2.27.2 in /Users/paulsilva/Library/Python/3.9/lib/python/site-packages (from pydantic<3,>=1.9.0->openai>=1.0.0->-r /Users/paulsilva/Documents/demo-02/api/python/requirements.txt (line 3)) (2.27.2)
+[0] Flask: WARNING: You are using pip version 21.2.4; however, version 25.0.1 is available.
+[0] You should consider upgrading via the '/Library/Developer/CommandLineTools/usr/bin/python3 -m pip install --upgrade pip' command.
+[0] Starting Flask server...
+[1]  ✓ Ready in 1075ms
+[0] Flask: 2025-03-31 21:41:49,583 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/models "HTTP/1.1 200 OK"
+[0] Flask: 2025-03-31 21:41:49,586 - __main__ - INFO - OpenAI API key validated successfully
+[0] Flask: FLASK_SERVER_PORT=5456
+[0] Detected Flask server running on port: 5456
+[0] Successfully wrote port 5456 to /Users/paulsilva/Documents/demo-02/.flask-port
+[0] Flask: 2025-03-31 21:41:49,588 - __main__ - INFO - Starting Flask server on 0.0.0.0:5456
+[0] Flask:  * Serving Flask app 'app'
+[0] Flask:  * Debug mode: on
+[0] Flask: 2025-03-31 21:41:49,609 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+[0] Flask:  * Running on all addresses (0.0.0.0)
+[0] Flask:  * Running on http://127.0.0.1:5456
+[0] Flask server is running successfully
+[0] Flask:  * Running on http://192.168.0.25:5456
+[0] Flask: 2025-03-31 21:41:49,609 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+[0] Flask: 2025-03-31 21:41:49,609 - werkzeug - INFO -  * Restarting with stat
+[0] Flask: 2025-03-31 21:41:50,169 - httpx - INFO - HTTP Request: GET https://api.openai.com/v1/models "HTTP/1.1 200 OK"
+[0] Flask: 2025-03-31 21:41:50,173 - __main__ - INFO - OpenAI API key validated successfully
+[0] Flask: 2025-03-31 21:41:50,175 - __main__ - WARNING - Port 5456 is already in use. Searching for an available port...
+[0] Flask: 2025-03-31 21:41:50,175 - __main__ - INFO - Found available port: 5457
+[0] Flask: FLASK_SERVER_PORT=5457
+[0] Detected Flask server running on port: 5457
+[0] Successfully wrote port 5457 to /Users/paulsilva/Documents/demo-02/.flask-port
+[0] Flask: 2025-03-31 21:41:50,175 - __main__ - INFO - Starting Flask server on 0.0.0.0:5457
+[0] Flask: 2025-03-31 21:41:50,189 - werkzeug - WARNING -  * Debugger is active!
+[0] Flask: 2025-03-31 21:41:50,194 - werkzeug - INFO -  * Debugger PIN: 637-201-626
+[1]  ✓ Compiled /api/health in 181ms (41 modules)
+[1] Running /api/health check
+[1] Using Flask port from .flask-port file: 5457
+[1] Flask API URL configured as: http://localhost:5336
+[1] Checking Flask API status at: http://localhost:5336/api/status
+[1] Error connecting to Flask API: TypeError: fetch failed
+[1]     at node:internal/deps/undici/undici:13502:13
+[1]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[1]     at async globalThis.fetch (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57569)
+[1]     at async GET (webpack-internal:///(rsc)/./src/app/api/health/route.ts:71:42)
+[1]     at async /Users/paulsilva/Documents/demo-02/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:63809
+[1]     at async eU.execute (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:53964)
+[1]     at async eU.handle (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:65062)
+[1]     at async doRender (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/base-server.js:1333:42)
+[1]     at async cacheEntry.responseCache.get.routeKind (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/base-server.js:1555:28)
+[1]     at async DevServer.renderToResponseWithComponentsImpl (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/base-server.js:1463:28)
+[1]     at async DevServer.renderPageComponent (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/base-server.js:1856:24)
+[1]     at async DevServer.renderToResponseImpl (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/base-server.js:1894:32)
+[1]     at async DevServer.pipeImpl (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/base-server.js:911:25)
+[1]     at async NextNodeServer.handleCatchallRenderRequest (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/next-server.js:271:17)
+[1]     at async DevServer.handleRequestImpl (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/base-server.js:807:17)
+[1]     at async /Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/dev/next-dev-server.js:331:20
+[1]     at async Span.traceAsyncFn (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/trace/trace.js:151:20)
+[1]     at async DevServer.handleRequest (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/dev/next-dev-server.js:328:24)
+[1]     at async invokeRender (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/lib/router-server.js:163:21)
+[1]     at async handleRequest (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/lib/router-server.js:342:24)
+[1]     at async requestHandlerImpl (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/lib/router-server.js:366:13)
+[1]     at async Server.requestListener (/Users/paulsilva/Documents/demo-02/node_modules/next/dist/server/lib/start-server.js:140:13) {
+[1]   [cause]: AggregateError [ECONNREFUSED]: 
+[1]       at internalConnectMultiple (node:net:1139:18)
+[1]       at afterConnectMultiple (node:net:1712:7)
+[1]       at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+[1]     code: 'ECONNREFUSED',
+[1]     [errors]: [ [Error], [Error] ]
+[1]   }
+[1] }
+[1]  ✓ Compiled in 15ms

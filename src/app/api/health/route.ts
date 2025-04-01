@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getFlaskUrl, isBuildEnvironment } from '@/utils/api';
+import { getFlaskUrl, isBuildEnvironment } from '../../../utils/api';
 
 // Export dynamic flag to ensure this route is always evaluated dynamically
 export const dynamic = 'force-dynamic';
@@ -49,6 +49,7 @@ export async function GET() {
       // Try to connect to Flask API for status check
       try {
         const flaskUrl = getFlaskUrl();
+        console.log(`Health endpoint: Flask URL = ${flaskUrl || 'not available'}`);
         
         // If Flask URL is empty, skip the check
         if (!flaskUrl) {
@@ -62,14 +63,15 @@ export async function GET() {
             message: 'Database status unknown without Flask'
           };
         } else {
-          console.log(`Checking Flask API status at: ${flaskUrl}/api/status`);
+          const statusUrl = `${flaskUrl}/api/status`;
+          console.log(`Checking Flask API status at: ${statusUrl}`);
           
           // Add timeout to avoid hanging too long
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 3000);
           
           try {
-            const response = await fetch(`${flaskUrl}/api/status`, {
+            const response = await fetch(statusUrl, {
               method: 'GET',
               signal: controller.signal,
               cache: 'no-store',
@@ -105,6 +107,7 @@ export async function GET() {
             }
           } catch (fetchError) {
             clearTimeout(timeoutId);
+            console.error(`Error fetching Flask status from ${statusUrl}:`, fetchError);
             throw fetchError; // Re-throw to be caught by the outer try-catch
           }
         }
