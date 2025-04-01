@@ -9,11 +9,17 @@ function LessonPlanForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
+  // Get any initial values from URL parameters
+  const initialSubject = searchParams?.get('subject') || '';
+  const initialCompetency = searchParams?.get('competency') || '';
+  const initialGrade = searchParams?.get('grade') || '';
+  const initialTopic = searchParams?.get('topic') || '';
+  
   // Form state
-  const [subject, setSubject] = useState(searchParams?.get('subject') || '');
-  const [competency, setCompetency] = useState(searchParams?.get('competency') || '');
-  const [grade, setGrade] = useState(searchParams?.get('grade') || '');
-  const [topic, setTopic] = useState('');
+  const [subject, setSubject] = useState(initialSubject);
+  const [competency, setCompetency] = useState(initialCompetency);
+  const [grade, setGrade] = useState(initialGrade);
+  const [topic, setTopic] = useState(initialTopic);
   
   // Loading and error states
   const [loading, setLoading] = useState(false);
@@ -25,8 +31,8 @@ function LessonPlanForm() {
     e.preventDefault();
     
     // Validate form
-    if (!subject || !competency || !grade || !topic) {
-      setError('Please fill in all fields');
+    if (!subject || !grade || !topic) {
+      setError('Por favor complete todos los campos requeridos');
       return;
     }
     
@@ -51,17 +57,26 @@ function LessonPlanForm() {
       const result = await response.json();
       
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to generate lesson plan');
+        throw new Error(result.error || 'Error al generar el plan de lección');
       }
       
       // Set the generated lesson plan
-      setLessonPlan(result.data);
+      setLessonPlan(result.lesson_plan);
       
     } catch (err) {
       console.error('Error generating lesson plan:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Handle key press for form submission (specifically Enter key)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const form = e.currentTarget.closest('form');
+      if (form) form.requestSubmit();
     }
   };
   
@@ -79,7 +94,7 @@ function LessonPlanForm() {
         </Link>
       </div>
       
-      <h1 className="text-2xl font-bold mb-6">Crear Nuevo Plan de Lección</h1>
+      <h1 className="text-2xl font-bold mb-6">Generar Plan de Lección</h1>
       
       {/* Form for lesson plan generation */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -87,12 +102,13 @@ function LessonPlanForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
-                Área Curricular
+                Área Curricular <span className="text-red-500">*</span>
               </label>
               <select
                 id="subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md"
                 required
               >
@@ -105,13 +121,29 @@ function LessonPlanForm() {
             </div>
             
             <div>
+              <label htmlFor="competency" className="block text-sm font-medium text-gray-700 mb-1">
+                Competencia 
+              </label>
+              <input
+                type="text"
+                id="competency"
+                value={competency}
+                onChange={(e) => setCompetency(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ej: Resuelve problemas de cantidad"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+            
+            <div>
               <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-1">
-                Nivel Educativo
+                Nivel Educativo <span className="text-red-500">*</span>
               </label>
               <select
                 id="grade"
                 value={grade}
                 onChange={(e) => setGrade(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md"
                 required
               >
@@ -123,53 +155,15 @@ function LessonPlanForm() {
             </div>
             
             <div>
-              <label htmlFor="competency" className="block text-sm font-medium text-gray-700 mb-1">
-                Competencia
-              </label>
-              <select
-                id="competency"
-                value={competency}
-                onChange={(e) => setCompetency(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md"
-                required
-              >
-                <option value="">Selecciona una competencia</option>
-                {subject === 'Matemática' && (
-                  <>
-                    <option value="Resuelve problemas de cantidad">Resuelve problemas de cantidad</option>
-                    <option value="Resuelve problemas de regularidad, equivalencia y cambio">Resuelve problemas de regularidad, equivalencia y cambio</option>
-                  </>
-                )}
-                {subject === 'Comunicación' && (
-                  <>
-                    <option value="Se comunica oralmente en su lengua materna">Se comunica oralmente en su lengua materna</option>
-                    <option value="Lee diversos tipos de textos escritos en su lengua materna">Lee diversos tipos de textos escritos en su lengua materna</option>
-                  </>
-                )}
-                {subject === 'Ciencia y Tecnología' && (
-                  <>
-                    <option value="Indaga mediante métodos científicos para construir sus conocimientos">Indaga mediante métodos científicos</option>
-                    <option value="Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía">Explica el mundo físico</option>
-                  </>
-                )}
-                {subject === 'Personal Social' && (
-                  <>
-                    <option value="Construye su identidad">Construye su identidad</option>
-                    <option value="Convive y participa democráticamente en la búsqueda del bien común">Convive y participa democráticamente</option>
-                  </>
-                )}
-              </select>
-            </div>
-            
-            <div>
               <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-1">
-                Tema Específico
+                Tema Específico <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 id="topic"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Ej: Fracciones, Narración de cuentos..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-md"
                 required
@@ -181,7 +175,7 @@ function LessonPlanForm() {
             <button
               type="submit"
               disabled={loading}
-              className={`px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-lg ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {loading && (
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -207,100 +201,101 @@ function LessonPlanForm() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-4">{lessonPlan.title}</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <p className="text-sm text-gray-600">Área Curricular</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="px-4 py-2 bg-gray-50 rounded-md">
+              <span className="text-sm text-gray-500">Área:</span>
               <p className="font-medium">{lessonPlan.subject}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Nivel</p>
+            <div className="px-4 py-2 bg-gray-50 rounded-md">
+              <span className="text-sm text-gray-500">Nivel:</span>
               <p className="font-medium">{lessonPlan.grade}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Competencia</p>
-              <p className="font-medium">{lessonPlan.competency}</p>
+            <div className="px-4 py-2 bg-gray-50 rounded-md">
+              <span className="text-sm text-gray-500">Duración:</span>
+              <p className="font-medium">{lessonPlan.duration}</p>
             </div>
           </div>
           
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2">Estándar de Aprendizaje</h3>
-            <p className="bg-blue-50 p-3 rounded">{lessonPlan.learningStandard}</p>
-          </div>
-          
-          <div className="mb-4">
+          <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Objetivos</h3>
-            <ul className="list-disc list-inside space-y-1">
+            <ul className="list-disc list-inside space-y-1 pl-4">
               {lessonPlan.objectives.map((objective: string, index: number) => (
-                <li key={index} className="text-gray-700">{objective}</li>
+                <li key={index}>{objective}</li>
               ))}
             </ul>
           </div>
           
-          <div className="mb-4">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Estándares</h3>
+            <ul className="list-disc list-inside space-y-1 pl-4">
+              {lessonPlan.standards.map((standard: string, index: number) => (
+                <li key={index}>{standard}</li>
+              ))}
+            </ul>
+          </div>
+          
+          <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Materiales</h3>
-            <ul className="list-disc list-inside space-y-1">
+            <ul className="list-disc list-inside space-y-1 pl-4">
               {lessonPlan.materials.map((material: string, index: number) => (
-                <li key={index} className="text-gray-700">{material}</li>
+                <li key={index}>{material}</li>
               ))}
             </ul>
           </div>
           
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2">Actividades</h3>
-            <div className="space-y-3">
-              {lessonPlan.activities.map((activity: any, index: number) => (
-                <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
-                  <p className="font-medium">{activity.title} <span className="text-gray-500 text-sm">({activity.duration})</span></p>
-                  <p className="text-gray-700">{activity.description}</p>
-                </div>
-              ))}
-            </div>
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Inicio ({lessonPlan.warmup.duration})</h3>
+            <p>{lessonPlan.warmup.description}</p>
           </div>
           
-          <div className="mb-4">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Actividades</h3>
+            {lessonPlan.activities.map((activity: any, index: number) => (
+              <div key={index} className="mb-4 border-l-4 border-blue-500 pl-4">
+                <h4 className="font-medium">{activity.title} ({activity.duration})</h4>
+                <p>{activity.description}</p>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Cierre ({lessonPlan.closure.duration})</h3>
+            <p>{lessonPlan.closure.description}</p>
+          </div>
+          
+          <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Evaluación</h3>
+            <p>{lessonPlan.assessment.description}</p>
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Tarea</h3>
+            <p>{lessonPlan.homework.description}</p>
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Diferenciación</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h4 className="font-medium mb-1">Formativa</h4>
-                <ul className="list-disc list-inside space-y-1">
-                  {lessonPlan.assessment.formative.map((item: string, index: number) => (
-                    <li key={index} className="text-gray-700">{item}</li>
-                  ))}
-                </ul>
+                <h4 className="font-medium text-blue-600">Para estudiantes avanzados:</h4>
+                <p>{lessonPlan.differentiation.advanced}</p>
               </div>
               <div>
-                <h4 className="font-medium mb-1">Sumativa</h4>
-                <ul className="list-disc list-inside space-y-1">
-                  {lessonPlan.assessment.summative.map((item: string, index: number) => (
-                    <li key={index} className="text-gray-700">{item}</li>
-                  ))}
-                </ul>
+                <h4 className="font-medium text-blue-600">Para estudiantes que necesitan apoyo:</h4>
+                <p>{lessonPlan.differentiation.support}</p>
               </div>
             </div>
           </div>
           
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2">Criterios de Evaluación</h3>
-            <ul className="list-disc list-inside space-y-1">
-              {lessonPlan.standardsCriteria.map((criterion: string, index: number) => (
-                <li key={index} className="text-gray-700">{criterion}</li>
-              ))}
-            </ul>
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Notas adicionales</h3>
+            <p>{lessonPlan.notes}</p>
           </div>
           
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Extensiones</h3>
-            <ul className="list-disc list-inside space-y-1">
-              {lessonPlan.extensions.map((extension: string, index: number) => (
-                <li key={index} className="text-gray-700">{extension}</li>
-              ))}
-            </ul>
-          </div>
-          
-          <div className="mt-6 flex gap-4">
+          <div className="flex justify-end space-x-4 mt-8">
             <button
               onClick={() => {
-                // In a real app, this would save to database
+                // In a real app, this would save the lesson plan to database
                 alert('Plan de lección guardado exitosamente!');
               }}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
@@ -310,20 +305,13 @@ function LessonPlanForm() {
             
             <button
               onClick={() => {
-                // In a real app, this would generate a PDF
-                alert('Funcionalidad de exportar PDF en desarrollo');
+                // In a real app, this would export the lesson plan to PDF
+                alert('Funcionalidad de exportar a PDF en desarrollo');
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Exportar PDF
+              Exportar a PDF
             </button>
-            
-            <Link
-              href="/activities/new"
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-            >
-              Generar Actividades
-            </Link>
           </div>
         </div>
       )}

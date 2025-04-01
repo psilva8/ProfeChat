@@ -14,6 +14,17 @@ interface Activity {
   differentiation: string;
 }
 
+// Loading fallback
+function LoadingFallback() {
+  return (
+    <div className="container mx-auto p-4">
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    </div>
+  );
+}
+
 // Activities form component 
 function ActivitiesForm() {
   // Form state
@@ -26,13 +37,22 @@ function ActivitiesForm() {
   const [error, setError] = useState<string | null>(null);
   const [activities, setActivities] = useState<Activity[] | null>(null);
   
+  // Handle key press for form submission (specifically Enter key)
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const form = e.currentTarget.closest('form');
+      if (form) form.requestSubmit();
+    }
+  };
+  
   // Submit form to generate activities
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
     if (!subject || !grade || !topic) {
-      setError('Please fill in all fields');
+      setError('Por favor complete todos los campos requeridos');
       return;
     }
     
@@ -56,7 +76,7 @@ function ActivitiesForm() {
       const result = await response.json();
       
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to generate activities');
+        throw new Error(result.error || 'Error al generar actividades');
       }
       
       // Set the generated activities
@@ -64,7 +84,7 @@ function ActivitiesForm() {
       
     } catch (err) {
       console.error('Error generating activities:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -92,12 +112,13 @@ function ActivitiesForm() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
-                Área Curricular
+                Área Curricular <span className="text-red-500">*</span>
               </label>
               <select
                 id="subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md"
                 required
               >
@@ -111,12 +132,13 @@ function ActivitiesForm() {
             
             <div>
               <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-1">
-                Nivel Educativo
+                Nivel Educativo <span className="text-red-500">*</span>
               </label>
               <select
                 id="grade"
                 value={grade}
                 onChange={(e) => setGrade(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md"
                 required
               >
@@ -129,13 +151,14 @@ function ActivitiesForm() {
             
             <div>
               <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-1">
-                Tema Específico
+                Tema Específico <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 id="topic"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Ej: Fracciones, Narración de cuentos..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-md"
                 required
@@ -147,7 +170,7 @@ function ActivitiesForm() {
             <button
               type="submit"
               disabled={loading}
-              className={`px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center text-lg ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {loading && (
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -260,17 +283,6 @@ function ActivitiesForm() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// Loading fallback
-function LoadingFallback() {
-  return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
     </div>
   );
 }
