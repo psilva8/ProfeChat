@@ -63,35 +63,95 @@ const FALLBACK_DATA = [
   }
 ];
 
-export async function GET(request: NextRequest) {
-  try {
-    // Try to get port and fetch from Flask first
-    try {
-      const port = await getFlaskPort();
-      console.log(`Fetching activities from Flask server on port ${port}`);
-      
-      const response = await fetch(`http://localhost:${port}/api/activities`, {
-        method: 'GET',
-        cache: 'no-store',
-        signal: AbortSignal.timeout(2000) // 2 second timeout
-      });
-
-      if (!response.ok) {
-        throw new Error(`Flask server responded with status ${response.status}`);
-      }
-
-      const data = await response.json();
-      return NextResponse.json(data);
-    } catch (flaskError) {
-      // Log the Flask error but continue to fallback
-      console.error('Error connecting to Flask server for activities:', flaskError);
-      console.log('Using fallback activities data instead');
-      
-      // Return the fallback data
-      return NextResponse.json(FALLBACK_DATA);
+// Sample activities data for testing
+const TEST_ACTIVITIES = [
+  {
+    id: 'activity-1',
+    title: 'Group Problem Solving',
+    grade: '8th Grade',
+    duration: 20,
+    created_at: '2023-03-30T14:30:00Z',
+    subject: 'Math',
+    content: {
+      description: 'Students work in groups to solve algebraic equations.',
+      objectives: 'Develop collaborative problem-solving skills and reinforce algebraic concepts.',
+      materials: 'Worksheet with 10 algebra problems, calculators',
+      instructions: 'Divide students into groups of 3-4. Each group must solve all problems and explain their reasoning.',
+      assessment: 'Groups present solutions to one assigned problem.'
     }
+  },
+  {
+    id: 'activity-2',
+    title: 'Water Cycle Diagram',
+    grade: '5th Grade',
+    duration: 30,
+    created_at: '2023-03-29T10:15:00Z',
+    subject: 'Science',
+    content: {
+      description: 'Students create a labeled diagram of the water cycle.',
+      objectives: 'Visualize and explain the stages of the water cycle.',
+      materials: 'Blank paper, colored pencils, water cycle reference',
+      instructions: 'Students should include evaporation, condensation, precipitation, and collection in their diagrams.',
+      assessment: 'Accuracy and completeness of labels and processes.'
+    }
+  },
+  {
+    id: 'activity-3',
+    title: 'Sonnet Analysis Workshop',
+    grade: '9th Grade',
+    duration: 45,
+    created_at: '2023-03-28T09:45:00Z',
+    subject: 'English',
+    content: {
+      description: 'Small groups analyze the structure, language, and themes of assigned sonnets.',
+      objectives: 'Identify and interpret literary devices in sonnets.',
+      materials: 'Copies of Shakespeare\'s sonnets, annotation guide',
+      instructions: 'Each group analyzes one sonnet and presents their findings to the class.',
+      assessment: 'Quality of analysis and presentation.'
+    }
+  }
+];
+
+export async function GET(request: NextRequest) {
+  console.log('Handling GET request to /api/activities');
+  
+  try {
+    // For diagnostics purposes, always return test data
+    // In a real app, this would check authentication and fetch from the database
+    return NextResponse.json({ 
+      success: true, 
+      activities: TEST_ACTIVITIES,
+      message: 'Test data for diagnostic purposes'
+    });
   } catch (error) {
-    console.error('Unhandled error in activities API route:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error fetching activities:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to fetch activities',
+      message: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  console.log('Handling POST request to /api/activities');
+  
+  try {
+    // In a real app, this would check authentication and save to the database
+    const data = await request.json();
+    
+    // For diagnostics, just echo the request back
+    return NextResponse.json({
+      success: true,
+      message: 'Activity created (test mode)',
+      data: data
+    });
+  } catch (error) {
+    console.error('Error creating activity:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to create activity',
+      message: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 } 

@@ -1,47 +1,94 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
 // List of all possible Flask API ports to check
-const POSSIBLE_FLASK_PORTS = [5338, 5339, 5340, 5341, 5342, 5343, 5344, 5345, 5346, 5347, 5348, 5349, 5350];
+const POSSIBLE_FLASK_PORTS = [5338, 5339, 5340, 5341, 5342, 5343, 5344, 5345, 5346, 5347, 5348, 5349, 5350, 5351, 5352, 5353, 5354, 5355, 5356, 5357, 5358, 5359, 5360, 5361, 5362, 5363, 5364, 5365, 5366, 5367, 5368, 5369, 5370, 5371, 5372, 5373, 5374, 5375, 5376, 5377, 5378, 5379, 5380, 5381, 5382, 5383, 5384, 5385, 5386, 5387, 5388, 5389, 5390, 5391, 5392, 5393, 5394, 5395, 5396, 5397, 5398, 5399];
+
+// Function to get the Flask port from the file
+async function getFlaskPortFromFile(): Promise<number | null> {
+  try {
+    const portFile = path.join(process.cwd(), '.flask-port');
+    if (fs.existsSync(portFile)) {
+      const port = parseInt(fs.readFileSync(portFile, 'utf8').trim(), 10);
+      console.log(`Read Flask port ${port} from .flask-port file`);
+      return port;
+    }
+  } catch (error) {
+    console.error(`Error reading .flask-port file:`, error);
+  }
+  return null;
+}
 
 async function checkPort(port: number): Promise<{ success: boolean; error?: string; data?: any }> {
   try {
     const response = await axios.get(`http://localhost:${port}/status`, {
-      timeout: 2000
+      timeout: 1000
     });
     
     return {
       success: true,
       data: response.data
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error.message
     };
   }
 }
 
 async function findWorkingPort(): Promise<number | null> {
-  // First try the configured port
-  const configuredPort = Number(process.env.FLASK_PORT || 5338);
-  
-  const mainPortCheck = await checkPort(configuredPort);
-  if (mainPortCheck.success) {
-    return configuredPort;
+  // First try to get the port from the .flask-port file
+  const filePort = await getFlaskPortFromFile();
+  if (filePort) {
+    try {
+      const response = await axios.get(`http://localhost:${filePort}/status`, { 
+        timeout: 500 
+      });
+      if (response.status === 200) {
+        return filePort;
+      }
+    } catch (error) {
+      console.error(`Configured port ${filePort} not working`);
+    }
   }
   
-  // Try each alternative port in parallel
-  const portChecks = await Promise.all(
-    POSSIBLE_FLASK_PORTS
-      .filter(port => port !== configuredPort)
-      .map(async port => ({ port, check: await checkPort(port) }))
-  );
+  // Then try the configured port from env
+  const configuredPort = Number(process.env.FLASK_PORT || process.env.FLASK_SERVER_PORT || 5338);
   
-  const workingPortInfo = portChecks.find(p => p.check.success);
-  return workingPortInfo ? workingPortInfo.port : null;
+  try {
+    const response = await axios.get(`http://localhost:${configuredPort}/status`, { 
+      timeout: 500 
+    });
+    if (response.status === 200) {
+      return configuredPort;
+    }
+  } catch (error) {
+    console.log(`Environment port ${configuredPort} not working, trying alternatives`);
+  }
+  
+  // Try each port sequentially until one works
+  for (const port of POSSIBLE_FLASK_PORTS) {
+    if (port === configuredPort || port === filePort) continue; // Skip the ones we already tried
+    
+    try {
+      const response = await axios.get(`http://localhost:${port}/status`, { 
+        timeout: 300 // Short timeout for faster checking
+      });
+      if (response.status === 200) {
+        console.log(`Found working Flask port: ${port}`);
+        return port;
+      }
+    } catch (error) {
+      // Port not working, try next one
+    }
+  }
+  
+  return null; // No working port found
 }
 
 export async function GET() {
