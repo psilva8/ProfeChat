@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Get the port from environment or use 5336 as default
-const FLASK_PORT = process.env.FLASK_PORT || 5336;
-const FLASK_URL = `http://localhost:${FLASK_PORT}`;
+import { getFlaskUrl } from '@/utils/api';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log(`[Unit Plan] POST request to Flask API at ${FLASK_URL}/api/generate-unit-plan with body:`, body);
+    console.log(`[Unit Plan] POST request to Flask API with body:`, body);
     
-    const response = await fetch(`${FLASK_URL}/api/generate-unit-plan`, {
+    // Get the Flask URL from the utility function
+    const flaskUrl = getFlaskUrl();
+    
+    if (!flaskUrl) {
+      console.warn('[Unit Plan] No Flask URL available, cannot connect to Flask backend');
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Flask backend not available',
+          message: 'Unable to connect to the Flask backend. The service may be in maintenance mode.'
+        },
+        { status: 503 }
+      );
+    }
+    
+    console.log(`[Unit Plan] Connecting to Flask API at: ${flaskUrl}/api/generate-unit-plan`);
+    
+    const response = await fetch(`${flaskUrl}/api/generate-unit-plan`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -27,7 +41,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error(`[Unit Plan] Failed to reach Flask backend:`, error);
     return NextResponse.json(
-      { error: 'Failed to reach Flask backend', details: error instanceof Error ? error.message : String(error) },
+      { 
+        success: false,
+        error: 'Failed to reach Flask backend',
+        message: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
