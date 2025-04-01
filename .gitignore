@@ -61,3 +61,36 @@ MANIFEST
 *.db
 *.db-journal
 .env.production
+
+# Python specific
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+api/python/venv/
+api/python/.server.pid
+api/python/flask_server.log
+api/python/test.txt
+
+# Flask
+instance/
+.webassets-cache
+
+# Log files
+*.log

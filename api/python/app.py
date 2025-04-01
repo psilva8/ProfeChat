@@ -25,7 +25,17 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:3000",  # Next.js development server
+            "http://127.0.0.1:3000",  # Alternate localhost format
+            "https://demo-02.vercel.app",  # Production domain (update as needed)
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 def is_port_in_use(port: int) -> bool:
     """Check if a port is already in use."""
@@ -472,6 +482,48 @@ def proxy_lesson_plans():
     """Return lesson plans for proxy endpoint"""
     logger.info("Proxy Lesson Plans endpoint called")
     return test_lesson_plans()
+
+@app.route('/api/test-openai-key', methods=['GET'])
+def test_openai_key():
+    """Test if the OpenAI API key is valid and working"""
+    try:
+        if not api_key or api_key == 'your-api-key-here':
+            logger.error("OpenAI API key not configured")
+            return jsonify({
+                "valid": False,
+                "error": "OpenAI API key not configured"
+            })
+
+        # Test API key by making a simple request
+        try:
+            client = OpenAI(api_key=api_key)
+            models = client.models.list()
+            
+            # If we've reached here, the API key is valid
+            logger.info("OpenAI API key is valid")
+            
+            return jsonify({
+                "valid": True,
+                "models_available": len(models.data)
+            })
+        except AuthenticationError:
+            logger.error("Invalid OpenAI API key")
+            return jsonify({
+                "valid": False,
+                "error": "Invalid OpenAI API key"
+            })
+        except Exception as e:
+            logger.error(f"Error validating OpenAI API key: {str(e)}")
+            return jsonify({
+                "valid": False,
+                "error": f"Error validating OpenAI API key: {str(e)}"
+            })
+    except Exception as e:
+        logger.error(f"Unexpected error testing OpenAI key: {str(e)}")
+        return jsonify({
+            "valid": False,
+            "error": f"Unexpected error: {str(e)}"
+        }), 500
 
 if __name__ == '__main__':
     # Validate OpenAI API key
