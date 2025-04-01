@@ -13,8 +13,8 @@ export function getFlaskUrl(): string {
         return ''; // No Flask connection in build environment
       }
       
-      // Use environment variable or default
-      let FLASK_PORT = process.env.FLASK_PORT || '5336';
+      // Initialize port variable
+      let flaskPort = process.env.FLASK_PORT || '5000';
       
       // Try to read from .flask-port file in development
       if (process.env.NODE_ENV === 'development') {
@@ -23,21 +23,27 @@ export function getFlaskUrl(): string {
         try {
           const portFile = path.join(process.cwd(), '.flask-port');
           if (fs.existsSync(portFile)) {
-            FLASK_PORT = fs.readFileSync(portFile, 'utf8').trim();
-            console.log(`Using Flask port from .flask-port file: ${FLASK_PORT}`);
+            const portFromFile = fs.readFileSync(portFile, 'utf8').trim();
+            // Only update if we got a valid port
+            if (portFromFile && !isNaN(parseInt(portFromFile))) {
+              flaskPort = portFromFile;
+              console.log(`Using Flask port from .flask-port file: ${flaskPort}`);
+            } else {
+              console.warn(`Invalid port in .flask-port file: "${portFromFile}", using default: ${flaskPort}`);
+            }
           } else {
-            console.log('No .flask-port file found, using default port:', FLASK_PORT);
+            console.log('No .flask-port file found, using default port:', flaskPort);
           }
         } catch (err) {
           console.warn('Error reading .flask-port file:', err);
         }
       }
       
-      // For Vercel deployments, this could be a deployed Flask API URL
-      const FLASK_API_URL = process.env.FLASK_API_URL || `http://localhost:${FLASK_PORT}`;
-      console.log('Flask API URL configured as:', FLASK_API_URL);
+      // Build the Flask API URL using the determined port
+      const flaskApiUrl = process.env.FLASK_API_URL || `http://localhost:${flaskPort}`;
+      console.log('Flask API URL configured as:', flaskApiUrl);
       
-      return FLASK_API_URL;
+      return flaskApiUrl;
     } catch (error) {
       console.error('Error determining Flask URL:', error);
       return ''; // Return empty string as fallback to avoid connection attempts
