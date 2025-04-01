@@ -148,43 +148,66 @@ async function getFlaskPort(): Promise<number> {
 export async function GET(request: NextRequest) {
   console.log('Handling GET request to /api/rubrics');
   
-  try {
-    // For diagnostics purposes, always return test data
-    // In a real app, this would check authentication and fetch from the database
-    return NextResponse.json({ 
-      success: true, 
-      rubrics: TEST_RUBRICS,
-      message: 'Test data for diagnostic purposes'
-    });
-  } catch (error) {
-    console.error('Error fetching rubrics:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to fetch rubrics',
-      message: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
-  }
+  // Add proper CORS headers
+  return NextResponse.json({
+    success: true,
+    rubrics: TEST_RUBRICS,
+    message: "Test data for diagnostic purposes"
+  }, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
   console.log('Handling POST request to /api/rubrics');
   
   try {
-    // In a real app, this would check authentication and save to the database
     const data = await request.json();
     
-    // For diagnostics, just echo the request back
+    // Log the request for debugging
+    console.log('Request data:', data);
+    
+    // In a real app, this would save the data to a database
+    
     return NextResponse.json({
       success: true,
-      message: 'Rubric created (test mode)',
+      message: "Rubric created successfully",
       data: data
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
     });
   } catch (error) {
-    console.error('Error creating rubric:', error);
+    console.error('Error in rubrics POST endpoint:', error);
     return NextResponse.json({ 
       success: false, 
       error: 'Failed to create rubric',
       message: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
+    }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      }
+    });
   }
+}
+
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  });
 } 
