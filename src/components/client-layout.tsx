@@ -4,6 +4,7 @@ import { SessionProvider, useSession, signOut } from "next-auth/react";
 import { Toaster } from "react-hot-toast";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ApiProvider from "./api-provider";
 
 function Navigation() {
   const { data: session } = useSession();
@@ -106,6 +107,7 @@ export default function ClientLayout({
 }) {
   return (
     <SessionProvider>
+      <ApiProvider />
       <div className="min-h-full">
         <Navigation />
         <main>
