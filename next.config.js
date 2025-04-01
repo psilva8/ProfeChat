@@ -39,6 +39,32 @@ const nextConfig = {
     console.log(`Setting up API proxy to Flask at: ${flaskUrl}`);
     
     return [
+      // Exclude Next.js API routes from being proxied to Flask
+      {
+        source: '/api/health',
+        destination: '/api/health',
+      },
+      {
+        source: '/api/flask-port',
+        destination: '/api/flask-port',
+      },
+      {
+        source: '/api/proxy/:path*',
+        destination: '/api/proxy/:path*',
+      },
+      {
+        source: '/api/generate-activities',
+        destination: '/api/generate-activities',
+      },
+      {
+        source: '/api/generate-lesson',
+        destination: '/api/generate-lesson',
+      },
+      {
+        source: '/api/test-lesson',
+        destination: '/api/test-lesson',
+      },
+      // Default rule to proxy everything else to Flask
       {
         source: '/api/:path*',
         destination: `${flaskUrl}/api/:path*`,
