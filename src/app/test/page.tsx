@@ -11,7 +11,7 @@ export default function TestPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/proxy/health', {
+      const response = await fetch('/api/connect-test', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

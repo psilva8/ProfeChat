@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional
 import socket
 import openai
 from datetime import datetime
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -587,35 +588,37 @@ def check_openai_key():
 if __name__ == '__main__':
     # Validate OpenAI API key
     try:
-        openai.models.list()
-        logger.info("OpenAI API key validated successfully")
+        # No need to re-validate here since we've already done it above
+        pass
     except Exception as e:
-        logger.error(f"Failed to validate OpenAI API key: {str(e)}")
+        logger.error(f"Failed to initialize OpenAI client: {str(e)}")
         exit(1)
 
     # Get port from environment variable or use default
     port = int(os.getenv('FLASK_SERVER_PORT', 5338))
-    max_attempts = 10
     
-    # Try to find an available port if the configured one is in use
+    # If the port is in use, find an available one
     if is_port_in_use(port):
         logger.warning(f"Port {port} is already in use. Searching for an available port...")
         try:
-            port = get_available_port(port, max_attempts)
+            # Try to find an available port starting from our original port
+            port = get_available_port(port + 1, max_attempts=60)
             logger.info(f"Found available port: {port}")
-        except RuntimeError as e:
-            logger.error(str(e))
+            
+            # Update environment variable
+            os.environ['FLASK_SERVER_PORT'] = str(port)
+        except Exception as e:
+            logger.error(f"Failed to find available port: {str(e)}")
             exit(1)
     
+    # Always print the port for the parent process to capture
+    print(f"FLASK_SERVER_PORT={port}", flush=True)
+    sys.stdout.flush()
+    
+    logger.info(f"Starting Flask server on 0.0.0.0:{port}")
+    
     try:
-        # Print the port to stdout for scripts that need to capture it
-        # This line is important for the start-flask.js script to detect the port
-        print(f"FLASK_SERVER_PORT={port}", flush=True)
-        sys.stdout.flush()
-        
-        # Start Flask server
-        logger.info(f"Starting Flask server on 0.0.0.0:{port}")
         app.run(host='0.0.0.0', port=port, debug=True)
     except Exception as e:
-        logger.error(f"Failed to start Flask server: {str(e)}")
+        logger.error(f"Error starting Flask server: {str(e)}")
         exit(1) 
