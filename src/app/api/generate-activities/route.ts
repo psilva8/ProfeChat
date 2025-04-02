@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getFlaskUrl, shouldUseTestData } from '@/app/utils/api';
 
 export const dynamic = 'force-dynamic';
 
-// Sample generated activities data
-const SAMPLE_GENERATED_ACTIVITIES = [
+// Sample generated activities data for math
+const MATH_ACTIVITIES = [
   {
     id: 'gen-activity-1',
     title: 'Fracciones con material manipulativo',
@@ -48,6 +49,59 @@ const SAMPLE_GENERATED_ACTIVITIES = [
   }
 ];
 
+// Sample generated activities data for language
+const LANGUAGE_ACTIVITIES = [
+  {
+    id: 'gen-activity-4',
+    title: 'Escritura creativa de cuentos',
+    grade: 'PRIMARIA',
+    duration: 50,
+    subject: 'Comunicación',
+    content: {
+      description: 'Los estudiantes escriben cuentos cortos utilizando una estructura narrativa clara.',
+      objectives: 'Desarrollar habilidades de escritura creativa y aplicar estructuras narrativas.',
+      materials: 'Papel, lápices, plantillas de estructura narrativa',
+      instructions: 'Los estudiantes crearán un cuento con introducción, desarrollo y desenlace, incluyendo personajes y escenarios detallados.',
+      assessment: 'Evaluación de la estructura narrativa, creatividad y uso del lenguaje.'
+    }
+  }
+];
+
+// Sample generated activities data for science
+const SCIENCE_ACTIVITIES = [
+  {
+    id: 'gen-activity-5',
+    title: 'Experimento del ciclo del agua',
+    grade: 'PRIMARIA',
+    duration: 60,
+    subject: 'Ciencia',
+    content: {
+      description: 'Los estudiantes observan y documentan el ciclo del agua mediante un experimento simple.',
+      objectives: 'Comprender los procesos de evaporación, condensación y precipitación en el ciclo del agua.',
+      materials: 'Bolsas de plástico transparentes, agua, colorante alimentario, cinta adhesiva',
+      instructions: 'Los estudiantes crearán mini ciclos del agua en bolsas de plástico y observarán los cambios durante varios días.',
+      assessment: 'Precisión de las observaciones y comprensión de los procesos del ciclo del agua.'
+    }
+  }
+];
+
+// Function to get appropriate test activities based on subject
+function getTestActivities(subject: string, grade: string, topic: string) {
+  // Convert to lowercase for easier comparison
+  const subjectLower = subject.toLowerCase();
+  
+  if (subjectLower.includes('mate') || subjectLower.includes('math')) {
+    return MATH_ACTIVITIES;
+  } else if (subjectLower.includes('comun') || subjectLower.includes('leng') || subjectLower.includes('espa')) {
+    return LANGUAGE_ACTIVITIES;
+  } else if (subjectLower.includes('cien') || subjectLower.includes('sci')) {
+    return SCIENCE_ACTIVITIES;
+  }
+  
+  // Default to math activities if no match
+  return MATH_ACTIVITIES;
+}
+
 // Function to handle OPTIONS requests for CORS
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -83,13 +137,99 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
-    // Return the sample data with both formats for compatibility
-    return NextResponse.json({
-      success: true,
-      data: SAMPLE_GENERATED_ACTIVITIES, // Newer format using "data" property
-      activities: SAMPLE_GENERATED_ACTIVITIES, // Legacy format using "activities" property
-      message: 'Sample generated activities for diagnostic purposes'
-    });
+    console.log(`Generating activities for: ${subject}, ${grade}, ${topic}`);
+    
+    // Check if we should use test data
+    if (shouldUseTestData()) {
+      console.log('Using test data for activities generation');
+      const testActivities = getTestActivities(subject, grade, topic);
+      
+      return NextResponse.json({
+        success: true,
+        data: testActivities,
+        activities: testActivities,
+        message: 'Actividades de muestra generadas con datos de prueba'
+      });
+    }
+    
+    // Get Flask API URL
+    const flaskUrl = getFlaskUrl();
+    
+    if (!flaskUrl) {
+      console.log('No Flask URL available, using test data');
+      const testActivities = getTestActivities(subject, grade, topic);
+      
+      return NextResponse.json({
+        success: true,
+        data: testActivities,
+        activities: testActivities,
+        message: 'Actividades de muestra generadas con datos de prueba (Flask no disponible)'
+      });
+    }
+    
+    console.log(`Attempting to connect to Flask API at: ${flaskUrl}/api/generate-activities`);
+    
+    try {
+      // Add a timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(`${flaskUrl}/api/generate-activities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      // Check if we got a 403 Forbidden, which might indicate a non-Flask service
+      if (response.status === 403) {
+        console.warn(`Port ${flaskUrl.split(':')[2].split('/')[0]} is in use by another service (received 403 Forbidden)`);
+        const testActivities = getTestActivities(subject, grade, topic);
+        
+        return NextResponse.json({
+          success: true,
+          data: testActivities,
+          activities: testActivities,
+          message: 'Actividades de muestra generadas con datos de prueba (puerto Flask en uso por otro servicio)'
+        });
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Flask API returned status ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Flask API returned error');
+      }
+      
+      // Get activities from the response (handle both formats)
+      const activitiesData = data.data || data.activities || [];
+      
+      return NextResponse.json({
+        success: true,
+        data: activitiesData,
+        activities: activitiesData,
+        message: 'Actividades generadas correctamente'
+      });
+    } catch (error) {
+      console.error('Error connecting to Flask API:', error);
+      console.log('Falling back to test activities data');
+      
+      // Fallback to test data
+      const testActivities = getTestActivities(subject, grade, topic);
+      
+      return NextResponse.json({
+        success: true,
+        data: testActivities,
+        activities: testActivities,
+        message: 'Actividades de muestra generadas con datos de prueba (Flask no disponible)'
+      });
+    }
   } catch (error) {
     console.error('Error in generate-activities endpoint:', error);
     return NextResponse.json({ 

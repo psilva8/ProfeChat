@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getFlaskUrl, isBuildEnvironment as isProductionBuild } from '@/app/utils/api';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ export async function GET() {
     }
   };
   
-  const isBuild = isBuildEnvironment();
+  const isBuild = isProductionBuild();
   const environment = process.env.NODE_ENV || 'development';
   
   try {
@@ -54,47 +55,72 @@ export async function GET() {
       // Try to fetch from the Flask API
       console.log('Checking Flask API status...');
       
-      try {
-        // Add a timeout to the fetch request
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
-        const response = await fetch('http://localhost:5000/api/health', {
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          services.flask.status = 'online';
-          services.flask.message = 'Flask API is running';
-          
-          // Update other services based on Flask response
-          services.database.status = data.database?.status || 'unknown';
-          services.database.message = data.database?.message || 'Database status returned by Flask';
-          
-          services.openai.status = data.openai?.status || 'unknown';
-          services.openai.message = data.openai?.message || 'OpenAI status returned by Flask';
-        } else {
-          services.flask.status = 'error';
-          services.flask.message = `Flask API returned error: ${response.status} ${response.statusText}`;
-          
-          services.database.status = 'unknown';
-          services.database.message = 'Database status unknown (Flask API error)';
-          
-          services.openai.status = 'unknown';
-          services.openai.message = 'OpenAI status unknown (Flask API error)';
-        }
-      } catch (error) {
+      // Get the Flask URL
+      const flaskUrl = getFlaskUrl();
+      console.log(`Using Flask URL: ${flaskUrl}`);
+      
+      if (!flaskUrl) {
+        console.log('No Flask URL available, Flask server may not be running');
         services.flask.status = 'offline';
-        services.flask.message = `Failed to connect to Flask API: ${error instanceof Error ? error.message : 'fetch failed'}`;
+        services.flask.message = 'Flask server not running (no Flask port detected)';
         
-        services.database.status = 'unknown';
-        services.database.message = 'Database status unknown (Flask connection failed)';
+        services.database.status = 'offline';
+        services.database.message = 'Database unavailable (Flask server not running)';
         
-        services.openai.status = 'unknown';
-        services.openai.message = 'OpenAI status unknown (Flask connection failed)';
+        services.openai.status = 'offline';
+        services.openai.message = 'OpenAI unavailable (Flask server not running)';
+      } else {
+        try {
+          // Add a timeout to the fetch request
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
+          const healthUrl = `${flaskUrl}/api/health`;
+          console.log(`Checking Flask health at: ${healthUrl}`);
+          
+          const response = await fetch(healthUrl, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            services.flask.status = 'online';
+            services.flask.message = 'Flask API is running';
+            
+            // Update other services based on Flask response
+            services.database.status = data.database?.status || 'unknown';
+            services.database.message = data.database?.message || 'Database status returned by Flask';
+            
+            services.openai.status = data.openai?.status || 'unknown';
+            services.openai.message = data.openai?.message || 'OpenAI status returned by Flask';
+          } else {
+            // Check if we got a 403 Forbidden, which might indicate a non-Flask service
+            if (response.status === 403) {
+              services.flask.status = 'conflict';
+              services.flask.message = `Port ${flaskUrl.split(':')[2].split('/')[0]} is in use by another service (received 403 Forbidden)`;
+            } else {
+              services.flask.status = 'error';
+              services.flask.message = `Flask API returned error: ${response.status} ${response.statusText}`;
+            }
+            
+            services.database.status = 'offline';
+            services.database.message = 'Database unavailable (Flask API error)';
+            
+            services.openai.status = 'offline';
+            services.openai.message = 'OpenAI unavailable (Flask API error)';
+          }
+        } catch (error) {
+          services.flask.status = 'offline';
+          services.flask.message = `Failed to connect to Flask API: ${error instanceof Error ? error.message : 'fetch failed'}`;
+          
+          services.database.status = 'offline';
+          services.database.message = 'Database unavailable (Flask connection failed)';
+          
+          services.openai.status = 'offline';
+          services.openai.message = 'OpenAI unavailable (Flask connection failed)';
+        }
       }
     }
 
