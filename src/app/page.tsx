@@ -1,18 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
   const [lessonPlan, setLessonPlan] = useState<any>(null);
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
+  
+  // Add debugging information
+  useEffect(() => {
+    console.log('Component mounted');
+    setDebugInfo('Component initialized');
+  }, []);
   
   const generateLessonPlan = async () => {
     setLoading(true);
     setError(null);
+    setDebugInfo('Generating lesson plan...');
     
     try {
+      console.log('Sending request to generate lesson plan');
       const response = await fetch('/api/generate-lesson', {
         method: 'POST',
         headers: {
@@ -26,7 +35,10 @@ export default function Home() {
         }),
       });
       
+      console.log('Response received:', response.status, response.statusText);
       const data = await response.json();
+      console.log('Response data:', data);
+      setDebugInfo(`Response received: ${JSON.stringify(data, null, 2).substring(0, 100)}...`);
       
       if (!response.ok) {
         throw new Error(data.message || 'Error generating lesson plan');
@@ -36,11 +48,14 @@ export default function Home() {
         throw new Error(data.message || 'Error in API response');
       }
       
-      setLessonPlan(data.data || data.lesson_plan);
-      console.log('Lesson plan generated:', data);
+      const lessonData = data.data || data.lesson_plan;
+      console.log('Setting lesson plan:', lessonData);
+      setLessonPlan(lessonData);
+      setDebugInfo(`Lesson plan set. Title: ${lessonData?.title}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
       console.error('Error generating lesson plan:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setDebugInfo(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -49,8 +64,10 @@ export default function Home() {
   const generateActivities = async () => {
     setLoading(true);
     setError(null);
+    setDebugInfo('Generating activities...');
     
     try {
+      console.log('Sending request to generate activities');
       const response = await fetch('/api/generate-activities', {
         method: 'POST',
         headers: {
@@ -63,7 +80,10 @@ export default function Home() {
         }),
       });
       
+      console.log('Response received:', response.status, response.statusText);
       const data = await response.json();
+      console.log('Response data:', data);
+      setDebugInfo(`Response received: ${JSON.stringify(data, null, 2).substring(0, 100)}...`);
       
       if (!response.ok) {
         throw new Error(data.message || 'Error generating activities');
@@ -73,11 +93,14 @@ export default function Home() {
         throw new Error(data.message || 'Error in API response');
       }
       
-      setActivities(data.data || data.activities || []);
-      console.log('Activities generated:', data);
+      const activitiesData = data.data || data.activities || [];
+      console.log('Setting activities:', activitiesData);
+      setActivities(activitiesData);
+      setDebugInfo(`Activities set. Count: ${activitiesData.length}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
       console.error('Error generating activities:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setDebugInfo(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -140,6 +163,16 @@ export default function Home() {
       color: '#b91c1c',
       borderRadius: '4px',
       marginBottom: '16px',
+    },
+    debugBox: {
+      padding: '16px',
+      backgroundColor: '#f0f9ff',
+      border: '1px solid #bae6fd',
+      color: '#0c4a6e',
+      borderRadius: '4px',
+      marginBottom: '16px',
+      whiteSpace: 'pre-wrap',
+      fontSize: '12px',
     },
     resultBox: {
       padding: '16px',
@@ -205,6 +238,10 @@ export default function Home() {
             {error}
           </div>
         )}
+        
+        <div style={pageStyles.debugBox}>
+          Debug Info: {debugInfo}
+        </div>
       </div>
       
       {lessonPlan && (
@@ -218,14 +255,14 @@ export default function Home() {
             
             <h4 style={{...pageStyles.resultItem, fontWeight: '500', marginTop: '16px'}}>Objectives:</h4>
             <ul style={pageStyles.objectivesList}>
-              {lessonPlan.objectives.map((obj: string, index: number) => (
+              {lessonPlan.objectives && lessonPlan.objectives.map((obj: string, index: number) => (
                 <li key={index} style={{color: 'black'}}>{obj}</li>
               ))}
             </ul>
             
             <h4 style={{...pageStyles.resultItem, fontWeight: '500', marginTop: '16px'}}>Activities:</h4>
             <div style={{display: 'grid', gap: '8px'}}>
-              {lessonPlan.activities.map((activity: any, index: number) => (
+              {lessonPlan.activities && lessonPlan.activities.map((activity: any, index: number) => (
                 <div key={index} style={pageStyles.activityBox}>
                   <p style={{color: 'black'}}><strong>{activity.name}</strong> ({activity.duration})</p>
                   <p style={{color: 'black'}}>{activity.description}</p>
@@ -236,7 +273,7 @@ export default function Home() {
         </div>
       )}
       
-      {activities.length > 0 && (
+      {activities && activities.length > 0 && (
         <div style={pageStyles.section}>
           <h2 style={pageStyles.subheading}>Activities</h2>
           <div style={{display: 'grid', gap: '16px'}}>
@@ -248,8 +285,8 @@ export default function Home() {
                 <p style={pageStyles.resultItem}><strong>Duration:</strong> {activity.duration} minutes</p>
                 
                 <div style={{marginTop: '12px'}}>
-                  <p style={pageStyles.resultItem}><strong>Description:</strong> {activity.content.description}</p>
-                  <p style={pageStyles.resultItem}><strong>Objectives:</strong> {activity.content.objectives}</p>
+                  <p style={pageStyles.resultItem}><strong>Description:</strong> {activity.content && activity.content.description}</p>
+                  <p style={pageStyles.resultItem}><strong>Objectives:</strong> {activity.content && activity.content.objectives}</p>
                 </div>
               </div>
             ))}
