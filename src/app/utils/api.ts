@@ -11,13 +11,13 @@ export const isBuildEnvironment = () => {
 
 // Get the Flask URL based on current environment
 export const getFlaskUrl = (): string => {
+  // Always return empty string in production to avoid fetch attempts
+  if (isBuildEnvironment()) {
+    console.log('Production environment detected, skipping Flask URL setup');
+    return '';
+  }
+  
   try {
-    // Skip Flask in build/production
-    if (isBuildEnvironment()) {
-      console.log('Build environment detected, skipping Flask URL setup');
-      return '';
-    }
-
     // Try to read from .flask-port file first
     try {
       const portFile = path.join(process.cwd(), '.flask-port');
@@ -52,9 +52,9 @@ export const getFlaskUrl = (): string => {
 
 // Function to determine whether to use test data
 export const shouldUseTestData = (): boolean => {
-  // Always use test data in build environments
+  // Always use test data in production environment
   if (isBuildEnvironment()) {
-    console.log('Using test data in build environment');
+    console.log('Using test data in production environment');
     return true;
   }
   
