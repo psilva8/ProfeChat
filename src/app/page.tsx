@@ -83,16 +83,106 @@ export default function Home() {
     }
   };
 
+  const pageStyles = {
+    container: {
+      minHeight: '100vh',
+      padding: '32px',
+      fontFamily: 'Arial, sans-serif',
+    },
+    heading: {
+      fontSize: '30px',
+      fontWeight: 'bold',
+      marginBottom: '24px',
+      color: 'black',
+    },
+    section: {
+      marginBottom: '32px',
+    },
+    subheading: {
+      fontSize: '20px',
+      fontWeight: '600',
+      marginBottom: '16px',
+      color: 'black',
+    },
+    buttonContainer: {
+      display: 'flex',
+      gap: '16px',
+      marginBottom: '16px',
+    },
+    buttonBlue: {
+      padding: '8px 16px',
+      backgroundColor: '#2563eb',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500',
+    },
+    buttonGreen: {
+      padding: '8px 16px',
+      backgroundColor: '#16a34a',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500',
+    },
+    buttonDisabled: {
+      backgroundColor: '#9ca3af',
+      cursor: 'default',
+    },
+    errorBox: {
+      padding: '16px',
+      backgroundColor: '#fee2e2',
+      border: '1px solid #ef4444',
+      color: '#b91c1c',
+      borderRadius: '4px',
+      marginBottom: '16px',
+    },
+    resultBox: {
+      padding: '16px',
+      backgroundColor: '#f3f4f6',
+      borderRadius: '4px',
+    },
+    resultTitle: {
+      fontSize: '18px',
+      fontWeight: '500',
+      marginBottom: '8px',
+      color: 'black',
+    },
+    resultItem: {
+      marginBottom: '8px',
+      color: 'black',
+    },
+    objectivesList: {
+      listStyleType: 'disc',
+      paddingLeft: '20px',
+      marginTop: '16px',
+      marginBottom: '16px',
+    },
+    activityBox: {
+      padding: '8px',
+      backgroundColor: 'white',
+      borderRadius: '4px',
+      marginBottom: '8px',
+    },
+  };
+
   return (
-    <main className="min-h-screen p-8">
-      <h1 className="text-3xl font-bold mb-6">API Test Page</h1>
+    <main style={pageStyles.container}>
+      <h1 style={pageStyles.heading}>API Test Page</h1>
       
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Test API Endpoints</h2>
-        <div className="flex gap-4 mb-4">
+      <div style={pageStyles.section}>
+        <h2 style={pageStyles.subheading}>Test API Endpoints</h2>
+        <div style={pageStyles.buttonContainer}>
           <button 
             onClick={generateLessonPlan}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+            style={{
+              ...pageStyles.buttonBlue,
+              ...(loading ? pageStyles.buttonDisabled : {})
+            }}
             disabled={loading}
           >
             {loading ? 'Loading...' : 'Generate Lesson Plan'}
@@ -100,7 +190,10 @@ export default function Home() {
           
           <button 
             onClick={generateActivities}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
+            style={{
+              ...pageStyles.buttonGreen,
+              ...(loading ? pageStyles.buttonDisabled : {})
+            }}
             disabled={loading}
           >
             {loading ? 'Loading...' : 'Generate Activities'}
@@ -108,34 +201,34 @@ export default function Home() {
         </div>
         
         {error && (
-          <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded mb-4">
+          <div style={pageStyles.errorBox}>
             {error}
           </div>
         )}
       </div>
       
       {lessonPlan && (
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Lesson Plan</h2>
-          <div className="p-4 bg-gray-100 rounded">
-            <h3 className="text-lg font-medium mb-2">{lessonPlan.title}</h3>
-            <p><strong>Subject:</strong> {lessonPlan.subject}</p>
-            <p><strong>Grade:</strong> {lessonPlan.grade}</p>
-            <p><strong>Topic:</strong> {lessonPlan.topic}</p>
+        <div style={pageStyles.section}>
+          <h2 style={pageStyles.subheading}>Lesson Plan</h2>
+          <div style={pageStyles.resultBox}>
+            <h3 style={pageStyles.resultTitle}>{lessonPlan.title}</h3>
+            <p style={pageStyles.resultItem}><strong>Subject:</strong> {lessonPlan.subject}</p>
+            <p style={pageStyles.resultItem}><strong>Grade:</strong> {lessonPlan.grade}</p>
+            <p style={pageStyles.resultItem}><strong>Topic:</strong> {lessonPlan.topic}</p>
             
-            <h4 className="font-medium mt-4 mb-2">Objectives:</h4>
-            <ul className="list-disc pl-5">
+            <h4 style={{...pageStyles.resultItem, fontWeight: '500', marginTop: '16px'}}>Objectives:</h4>
+            <ul style={pageStyles.objectivesList}>
               {lessonPlan.objectives.map((obj: string, index: number) => (
-                <li key={index}>{obj}</li>
+                <li key={index} style={{color: 'black'}}>{obj}</li>
               ))}
             </ul>
             
-            <h4 className="font-medium mt-4 mb-2">Activities:</h4>
-            <div className="grid gap-2">
+            <h4 style={{...pageStyles.resultItem, fontWeight: '500', marginTop: '16px'}}>Activities:</h4>
+            <div style={{display: 'grid', gap: '8px'}}>
               {lessonPlan.activities.map((activity: any, index: number) => (
-                <div key={index} className="p-2 bg-white rounded">
-                  <p><strong>{activity.name}</strong> ({activity.duration})</p>
-                  <p>{activity.description}</p>
+                <div key={index} style={pageStyles.activityBox}>
+                  <p style={{color: 'black'}}><strong>{activity.name}</strong> ({activity.duration})</p>
+                  <p style={{color: 'black'}}>{activity.description}</p>
                 </div>
               ))}
             </div>
@@ -144,19 +237,19 @@ export default function Home() {
       )}
       
       {activities.length > 0 && (
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Activities</h2>
-          <div className="grid gap-4">
+        <div style={pageStyles.section}>
+          <h2 style={pageStyles.subheading}>Activities</h2>
+          <div style={{display: 'grid', gap: '16px'}}>
             {activities.map((activity, index) => (
-              <div key={index} className="p-4 bg-gray-100 rounded">
-                <h3 className="text-lg font-medium mb-2">{activity.title}</h3>
-                <p><strong>Subject:</strong> {activity.subject}</p>
-                <p><strong>Grade:</strong> {activity.grade}</p>
-                <p><strong>Duration:</strong> {activity.duration} minutes</p>
+              <div key={index} style={pageStyles.resultBox}>
+                <h3 style={pageStyles.resultTitle}>{activity.title}</h3>
+                <p style={pageStyles.resultItem}><strong>Subject:</strong> {activity.subject}</p>
+                <p style={pageStyles.resultItem}><strong>Grade:</strong> {activity.grade}</p>
+                <p style={pageStyles.resultItem}><strong>Duration:</strong> {activity.duration} minutes</p>
                 
-                <div className="mt-3">
-                  <p><strong>Description:</strong> {activity.content.description}</p>
-                  <p><strong>Objectives:</strong> {activity.content.objectives}</p>
+                <div style={{marginTop: '12px'}}>
+                  <p style={pageStyles.resultItem}><strong>Description:</strong> {activity.content.description}</p>
+                  <p style={pageStyles.resultItem}><strong>Objectives:</strong> {activity.content.objectives}</p>
                 </div>
               </div>
             ))}
