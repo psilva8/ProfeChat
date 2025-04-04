@@ -48,10 +48,16 @@ export default function ChatForm() {
       console.log(`Sending chat request: ${currentInput}`);
       console.log(`Selected subject: ${selectedSubject || 'none'}`);
       
-      const response = await fetch('/api/chat', {
+      // Add a cache-busting parameter to prevent cached responses
+      const timestamp = new Date().getTime();
+      
+      const response = await fetch(`/api/chat?_=${timestamp}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         },
         body: JSON.stringify({ 
           message: currentInput,
@@ -81,8 +87,38 @@ export default function ChatForm() {
       console.log(`Is this a test message? ${isTestMessage ? 'Yes' : 'No'}`);
       
       if (isTestMessage) {
-        console.log('WARNING: Received a test message response even though we should be getting a real one');
-        console.log(`Response starts with: ${data.response.substring(0, 100)}...`);
+        console.error('WARNING: Received a test message response when we should be getting a real one');
+        console.error(`Response starts with: ${data.response.substring(0, 100)}...`);
+        
+        // If we got a test message but shouldn't, retry with a different approach
+        console.log('Retrying with direct approach to lesson plan API...');
+        
+        const retryResponse = await fetch(`/api/generate-lesson?_=${timestamp+1}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          },
+          body: JSON.stringify({ 
+            subject: selectedSubject || 'General',
+            grade: 'PRIMARIA',
+            topic: currentInput,
+            objectives: 'Responder a la consulta del usuario',
+            duration: '30 minutos'
+          }),
+        });
+        
+        if (!retryResponse.ok) {
+          throw new Error(`Retry failed with status ${retryResponse.status}`);
+        }
+        
+        const retryData = await retryResponse.json();
+        if (retryData && (retryData.data || retryData.lesson_plan)) {
+          console.log('Successfully got a real response from retry!');
+          data.response = retryData.data || retryData.lesson_plan;
+        }
       }
       
       const assistantMessage: ChatMessage = { 

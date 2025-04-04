@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFlaskUrl, shouldUseTestData } from '@/app/utils/api';
+import fs from 'fs';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,124 +71,81 @@ function generateTestLessonPlan(subject: string, grade: string, topic: string, c
 }
 
 export async function POST(request: NextRequest) {
-  console.log('Handling POST request to /api/generate-lesson');
-  
   try {
-    // Get the request data
-    const requestData = await request.json();
-    console.log('Request data:', requestData);
+    console.log('Direct generate-lesson API called - bypassing all test data checks');
     
-    // Validate required fields
-    const { subject, grade, topic, competency } = requestData;
-    
-    if (!subject || !grade || !topic) {
-      console.warn('Missing required fields in request:', { subject, grade, topic });
-      return NextResponse.json({
-        success: false,
-        data: null, // Return null for frontend compatibility
-        lesson_plan: null, // Also include lesson_plan property for backward compatibility
-        message: 'Missing required fields: subject, grade, and topic are required'
-      }, { status: 400 });
-    }
-    
-    console.log(`Generating lesson plan for: ${subject}, ${grade}, ${topic}`);
-    
-    // Check if we should use test data
-    if (shouldUseTestData()) {
-      console.log('Using test data for lesson plan generation');
-      const testData = generateTestLessonPlan(subject, grade, topic, competency);
-      
-      return NextResponse.json({
-        success: true,
-        data: testData,
-        lesson_plan: testData,
-        message: 'Plan de lección de muestra generado con datos de prueba'
-      });
-    }
-    
-    // Get Flask API URL
-    const flaskUrl = getFlaskUrl();
+    const data = await request.json();
+    const { subject, grade, topic, objectives, duration } = data;
+
+    console.log(`Generate request for: ${subject}, ${grade}, ${topic}`);
+
+    // Force direct connection to Flask - no test data
+    const flaskUrl = getFlaskUrlDirect();
     
     if (!flaskUrl) {
-      console.log('No Flask URL available, using test data');
-      const testData = generateTestLessonPlan(subject, grade, topic, competency);
-      
+      console.error('Could not determine Flask URL');
       return NextResponse.json({
-        success: true,
-        data: testData,
-        lesson_plan: testData,
-        message: 'Plan de lección de muestra generado con datos de prueba (Flask no disponible)'
-      });
+        error: 'Flask server unavailable',
+        message: 'Could not connect to language model'
+      }, { status: 500 });
     }
+
+    console.log(`Directly connecting to Flask at ${flaskUrl}/api/generate-lesson`);
     
-    console.log(`Attempting to connect to Flask API at: ${flaskUrl}/api/generate-lesson`);
-    
-    try {
-      // Add a timeout to the fetch request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const response = await fetch(`${flaskUrl}/api/generate-lesson`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      // Check if we got a 403 Forbidden, which might indicate a non-Flask service
-      if (response.status === 403) {
-        console.warn(`Port ${flaskUrl.split(':')[2].split('/')[0]} is in use by another service (received 403 Forbidden)`);
-        const testData = generateTestLessonPlan(subject, grade, topic, competency);
-        
-        return NextResponse.json({
-          success: true,
-          data: testData,
-          lesson_plan: testData,
-          message: 'Plan de lección de muestra generado con datos de prueba (puerto Flask en uso por otro servicio)'
-        });
-      }
-      
-      if (!response.ok) {
-        throw new Error(`Flask API returned status ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Flask API returned error');
-      }
-      
-      return NextResponse.json({
-        success: true,
-        data: data.data || data.lesson_plan,
-        lesson_plan: data.data || data.lesson_plan,
-        message: 'Plan de lección generado correctamente'
-      });
-    } catch (error) {
-      console.error('Error connecting to Flask API:', error);
-      console.log('Falling back to test lesson plan data');
-      
-      // Fallback to test data
-      const testData = generateTestLessonPlan(subject, grade, topic, competency);
-      
-      return NextResponse.json({
-        success: true,
-        data: testData,
-        lesson_plan: testData,
-        message: 'Plan de lección de muestra generado con datos de prueba (Flask no disponible)'
-      });
+    const flaskResponse = await fetch(`${flaskUrl}/api/generate-lesson`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        subject: subject || 'General',
+        grade: grade || 'PRIMARIA',
+        topic: topic || '',
+        objectives: objectives || 'Responder a la consulta del usuario',
+        duration: duration || '30 minutos'
+      }),
+      signal: AbortSignal.timeout(20000) // 20 second timeout
+    });
+
+    if (!flaskResponse.ok) {
+      const errorText = await flaskResponse.text();
+      console.error(`Flask API error: ${flaskResponse.status}`, errorText);
+      return NextResponse.json({ 
+        error: 'Flask API error',
+        message: 'Error connecting to language model'
+      }, { status: flaskResponse.status });
     }
+
+    const flaskData = await flaskResponse.json();
+    console.log('Successfully received response from Flask');
+    
+    return NextResponse.json(flaskData);
   } catch (error) {
-    console.error('Error in generate-lesson endpoint:', error);
+    console.error('Error in generate-lesson API:', error);
     return NextResponse.json({ 
-      success: false,
-      data: null,
-      lesson_plan: null,
-      error: 'Failed to generate lesson plan',
-      message: error instanceof Error ? error.message : String(error)
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
+  }
+}
+
+// Get Flask URL directly from .flask-port file without any logic
+function getFlaskUrlDirect(): string {
+  try {
+    const portFile = path.join(process.cwd(), '.flask-port');
+    if (fs.existsSync(portFile)) {
+      const portContent = fs.readFileSync(portFile, 'utf8').trim();
+      const port = parseInt(portContent, 10);
+      if (!isNaN(port) && port > 0 && port < 65536) {
+        console.log(`Found Flask port ${port} in .flask-port file`);
+        return `http://localhost:${port}`;
+      }
+    }
+    
+    console.log('No valid port in .flask-port, using default 5338');
+    return 'http://localhost:5338';
+  } catch (error) {
+    console.error('Error reading .flask-port:', error);
+    return '';
   }
 } 
