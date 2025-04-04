@@ -17,56 +17,66 @@ export const getFlaskUrl = (): string => {
     return '';
   }
   
-  try {
-    // Try to read from .flask-port file first
-    try {
-      const portFile = path.join(process.cwd(), '.flask-port');
-      if (fs.existsSync(portFile)) {
-        const portContent = fs.readFileSync(portFile, 'utf8').trim();
-        // Validate port - should be a number
-        const port = parseInt(portContent, 10);
-        if (!isNaN(port) && port > 0 && port < 65536) {
-          console.log(`Found valid Flask port ${port} in .flask-port file`);
-          return `http://localhost:${port}`;
-        } else {
-          console.warn(`Invalid port "${portContent}" in .flask-port file, falling back to default`);
-        }
-      } else {
-        console.log('No .flask-port file found, Flask server may not be running');
-      }
-    } catch (error) {
-      console.error('Error reading .flask-port file:', error);
-    }
-
-    // Fallback to environment variable
-    const flaskPort = process.env.FLASK_PORT || '5000';
-    console.log(`Using Flask port ${flaskPort} from environment variable`);
-    
-    // Check if the port is already in use by non-Flask service
-    return `http://localhost:${flaskPort}`;
-  } catch (error) {
-    console.error('Error determining Flask URL:', error);
-    return '';
-  }
+  return getFlaskUrlInternal();
 };
 
 // Function to determine whether to use test data
 export const shouldUseTestData = (): boolean => {
+  console.log('Checking if we should use test data...');
+  
   // Always use test data in production environment
   if (isBuildEnvironment()) {
-    console.log('Using test data in production environment');
+    console.log('Using test data because we are in a production environment');
     return true;
   }
   
-  // Use test data if Flask URL is empty
-  const flaskUrl = getFlaskUrl();
+  // Check if we can access the Flask server
+  try {
+    // Try to read from .flask-port file first
+    const portFile = path.join(process.cwd(), '.flask-port');
+    if (fs.existsSync(portFile)) {
+      const portContent = fs.readFileSync(portFile, 'utf8').trim();
+      // Validate port - should be a number
+      const port = parseInt(portContent, 10);
+      if (!isNaN(port) && port > 0 && port < 65536) {
+        console.log(`Found valid Flask port ${port} in .flask-port file - will use real API`);
+        // Flask port is valid, we should use the real API
+        return false;
+      }
+    }
+  } catch (error) {
+    console.error('Error checking Flask port file:', error);
+  }
+  
+  // If we've reached here without returning, use the fallback method
+  // Get Flask URL without logging (to avoid circular logs)
+  const flaskUrl = getFlaskUrlInternal();
   const useTestData = !flaskUrl;
   
   if (useTestData) {
-    console.log('Flask URL not available, using test data');
+    console.log('Using test data because Flask URL is not available');
   } else {
-    console.log('Flask URL available, using live API');
+    console.log('Using real API because Flask URL is available');
   }
   
   return useTestData;
-}; 
+};
+
+// Internal helper function to get Flask URL without triggering shouldUseTestData checks
+function getFlaskUrlInternal(): string {
+  try {
+    const portFile = path.join(process.cwd(), '.flask-port');
+    if (fs.existsSync(portFile)) {
+      const portContent = fs.readFileSync(portFile, 'utf8').trim();
+      const port = parseInt(portContent, 10);
+      if (!isNaN(port) && port > 0 && port < 65536) {
+        return `http://localhost:${port}`;
+      }
+    }
+    
+    const flaskPort = process.env.FLASK_PORT || '5000';
+    return `http://localhost:${flaskPort}`;
+  } catch (error) {
+    return '';
+  }
+} 

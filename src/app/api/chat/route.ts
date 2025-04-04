@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getFlaskUrl, shouldUseTestData } from '@/app/utils/api';
+import { getFlaskUrl, shouldUseTestData, isBuildEnvironment } from '@/app/utils/api';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
     console.log('Handling chat request');
+    console.log(`Current environment: ${process.env.NODE_ENV}`);
+    console.log(`Is build environment: ${isBuildEnvironment()}`);
+    
     const data = await request.json();
     const { message, subject } = data;
 
@@ -17,7 +20,10 @@ export async function POST(request: Request) {
     }
 
     // Check if we should use test data (in production or if Flask is down)
-    if (shouldUseTestData()) {
+    const useTestData = shouldUseTestData();
+    console.log(`Should use test data? ${useTestData ? 'Yes' : 'No'}`);
+    
+    if (useTestData) {
       console.log('Using test data for chat response');
       return NextResponse.json({
         response: `Este es un mensaje de prueba para la pregunta: "${message}".\n\nComo estamos en modo prueba, no estoy conectado al modelo de lenguaje completo. En producción, recibirías una respuesta personalizada basada en tu pregunta sobre ${subject || 'educación'}.`
@@ -26,6 +32,8 @@ export async function POST(request: Request) {
 
     // Get Flask URL
     const flaskUrl = getFlaskUrl();
+    console.log(`Flask URL: ${flaskUrl}`);
+    
     if (!flaskUrl) {
       console.log('Flask URL not available, using test data');
       return NextResponse.json({
@@ -63,14 +71,18 @@ export async function POST(request: Request) {
 
       const flaskData = await flaskResponse.json();
       console.log('Received successful response from Flask API');
+      console.log(`Response data keys: ${Object.keys(flaskData).join(', ')}`);
       
       // Format the response to look like a chat response
       let chatResponse = '';
       if (flaskData && flaskData.data) {
+        console.log('Using data field from response');
         chatResponse = flaskData.data;
       } else if (flaskData && flaskData.lesson_plan) {
+        console.log('Using lesson_plan field from response');
         chatResponse = flaskData.lesson_plan;
       } else {
+        console.log('Could not find expected data format, using raw response');
         chatResponse = 'Recibí una respuesta del servidor, pero no pude extraer el contenido en el formato esperado.';
       }
       

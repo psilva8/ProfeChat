@@ -33,6 +33,9 @@ export default function ChatForm() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
     
+    // Save the input to check later
+    const currentInput = input;
+    
     const userMessage: ChatMessage = { 
       role: 'user', 
       content: input 
@@ -42,14 +45,16 @@ export default function ChatForm() {
     setIsLoading(true);
     
     try {
-      console.log(`Sending chat request: ${input}`);
+      console.log(`Sending chat request: ${currentInput}`);
+      console.log(`Selected subject: ${selectedSubject || 'none'}`);
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          message: input,
+          message: currentInput,
           subject: selectedSubject 
         }),
       });
@@ -61,11 +66,23 @@ export default function ChatForm() {
       }
       
       const data = await response.json();
-      console.log('Received chat response:', data);
+      console.log('Received chat response (raw):', JSON.stringify(data));
       
       if (!data.response) {
         console.error('Response missing response field:', data);
         throw new Error('Invalid response format from server');
+      }
+      
+      // Check if the response contains the test message
+      const isTestMessage = data.response.includes('modo prueba') || 
+                           data.response.includes('test mode') ||
+                           data.response.includes('mensaje de prueba');
+                           
+      console.log(`Is this a test message? ${isTestMessage ? 'Yes' : 'No'}`);
+      
+      if (isTestMessage) {
+        console.log('WARNING: Received a test message response even though we should be getting a real one');
+        console.log(`Response starts with: ${data.response.substring(0, 100)}...`);
       }
       
       const assistantMessage: ChatMessage = { 
