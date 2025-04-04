@@ -21,8 +21,12 @@ export default function Home() {
       try {
         const response = await fetch('/api/health');
         const data = await response.json();
-        setIsFlaskRunning(data.services?.flask?.status === 'online');
-        setDebugInfo(prev => `${prev}\nFlask status: ${data.services?.flask?.status || 'unknown'}`);
+        const flaskStatus = data.services?.flask?.status;
+        setIsFlaskRunning(flaskStatus === 'online');
+        console.log('Flask status from health check:', flaskStatus, data);
+        setDebugInfo(prev => 
+          `${prev}\nFlask status: ${flaskStatus || 'unknown'}\nRaw health data: ${JSON.stringify(data.services)}`
+        );
       } catch (err) {
         console.error('Error checking Flask status:', err);
         setIsFlaskRunning(false);
@@ -33,8 +37,8 @@ export default function Home() {
     // Initial check
     checkFlaskStatus();
     
-    // Set up periodic checking (every 5 seconds)
-    const intervalId = setInterval(checkFlaskStatus, 5000);
+    // Set up periodic checking (every 2 seconds)
+    const intervalId = setInterval(checkFlaskStatus, 2000);
     
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
