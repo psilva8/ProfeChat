@@ -42,6 +42,7 @@ export default function ChatForm() {
     setIsLoading(true);
     
     try {
+      console.log(`Sending chat request: ${input}`);
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -54,13 +55,22 @@ export default function ChatForm() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch response');
+        const errorText = await response.text();
+        console.error(`Error from chat API (${response.status}):`, errorText);
+        throw new Error(`Error ${response.status}: ${errorText}`);
       }
       
       const data = await response.json();
+      console.log('Received chat response:', data);
+      
+      if (!data.response) {
+        console.error('Response missing response field:', data);
+        throw new Error('Invalid response format from server');
+      }
+      
       const assistantMessage: ChatMessage = { 
         role: 'assistant', 
-        content: data.response || 'Lo siento, no pude procesar tu pregunta.' 
+        content: data.response
       };
       
       setMessages(prev => [...prev, assistantMessage]);
