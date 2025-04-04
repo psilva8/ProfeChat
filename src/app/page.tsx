@@ -1,6 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import ChatForm from './components/ChatForm';
 
 export default function Home() {
   const [lessonPlan, setLessonPlan] = useState<any>(null);
