@@ -29,14 +29,14 @@ export default function Home() {
         });
         const data = await response.json();
         const flaskStatus = data.services?.flask?.status;
-        const isOnline = flaskStatus === 'online';
+        const isOnline = flaskStatus === 'online' || flaskStatus === 'skipped';
         
         console.log('Flask status from health check:', flaskStatus, data);
         setDebugInfo(prev => 
           `${prev}\nFlask status: ${flaskStatus || 'unknown'}\nRaw health data: ${JSON.stringify(data.services)}`
         );
         
-        // Force the status to true if we detect it's online
+        // Force the status to true if we detect it's online or skipped
         if (isOnline) {
           console.log('Setting Flask running state to true');
           setIsFlaskRunning(true);
