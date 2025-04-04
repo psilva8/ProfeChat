@@ -8,7 +8,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
-  const [isFlaskRunning, setIsFlaskRunning] = useState<boolean | null>(null);
+  const [isFlaskRunning, setIsFlaskRunning] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState('lessonPlan');
   
   // Add debugging information and check Flask status
@@ -19,14 +19,28 @@ export default function Home() {
     // Check if Flask server is running
     const checkFlaskStatus = async () => {
       try {
-        const response = await fetch('/api/health');
+        const response = await fetch('/api/health', {
+          // Add cache busting parameter to prevent browser caching
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
+        });
         const data = await response.json();
         const flaskStatus = data.services?.flask?.status;
-        setIsFlaskRunning(flaskStatus === 'online');
+        const isOnline = flaskStatus === 'online';
+        
         console.log('Flask status from health check:', flaskStatus, data);
         setDebugInfo(prev => 
           `${prev}\nFlask status: ${flaskStatus || 'unknown'}\nRaw health data: ${JSON.stringify(data.services)}`
         );
+        
+        // Only update state if status has changed to avoid re-renders
+        if (isOnline !== isFlaskRunning) {
+          console.log('Updating Flask running state:', isOnline);
+          setIsFlaskRunning(isOnline);
+        }
       } catch (err) {
         console.error('Error checking Flask status:', err);
         setIsFlaskRunning(false);
@@ -42,7 +56,7 @@ export default function Home() {
     
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
-  }, []);
+  }, [isFlaskRunning]);
   
   const generateLessonPlan = async () => {
     setLoading(true);
