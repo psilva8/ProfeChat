@@ -30,7 +30,14 @@ export default function Home() {
       }
     };
     
+    // Initial check
     checkFlaskStatus();
+    
+    // Set up periodic checking (every 5 seconds)
+    const intervalId = setInterval(checkFlaskStatus, 5000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
   
   const generateLessonPlan = async () => {
