@@ -167,10 +167,13 @@ export default function Home() {
     }}>
       {/* Header */}
       <header style={{
-        background: 'linear-gradient(90deg, #6E3CD9 0%, #7A4BE0 100%)',
-        padding: '1rem',
-        color: 'white',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+        background: 'white',
+        padding: '1.25rem 1.5rem',
+        color: '#333',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
       }}>
         <div style={{
           maxWidth: '1200px',
@@ -180,18 +183,24 @@ export default function Home() {
           justifyContent: 'space-between'
         }}>
           <h1 style={{
-            fontSize: '1.75rem',
-            fontWeight: '700',
-            margin: 0
-          }}>ProfeChat</h1>
+            fontSize: '1.5rem',
+            fontWeight: '800',
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.35rem'
+          }}>
+            <span style={{ color: '#6E3CD9' }}>Profe</span>Chat
+          </h1>
           
           <nav style={{
             display: 'flex',
-            gap: '1.5rem'
+            gap: '2rem'
           }}>
-            <a href="#" style={{color: 'white', textDecoration: 'none', fontWeight: 500}}>Home</a>
-            <a href="#" style={{color: 'white', textDecoration: 'none', fontWeight: 500}}>Resources</a>
-            <a href="#" style={{color: 'white', textDecoration: 'none', fontWeight: 500}}>About</a>
+            <a href="#" style={{color: '#6E3CD9', textDecoration: 'none', fontWeight: 600}}>Inicio</a>
+            <a href="#" style={{color: '#555', textDecoration: 'none', fontWeight: 500}}>Herramientas</a>
+            <a href="#" style={{color: '#555', textDecoration: 'none', fontWeight: 500}}>Recursos</a>
+            <a href="#" style={{color: '#555', textDecoration: 'none', fontWeight: 500}}>Acerca de</a>
           </nav>
         </div>
       </header>
@@ -199,50 +208,52 @@ export default function Home() {
       <main style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '2rem 1rem'
+        padding: '1rem 1.5rem 4rem'
       }}>
         {/* Hero Section */}
         <section style={{
           marginBottom: '3rem',
-          textAlign: 'center',
-          padding: '3rem 0'
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '4rem 0 2rem',
+          textAlign: 'center'
         }}>
           <h1 style={{
-            fontSize: '2.5rem',
+            fontSize: '3.5rem',
             fontWeight: '800',
             color: '#333',
-            marginBottom: '1rem'
-          }}>AI-Powered Teaching Assistant</h1>
-          <p style={{
-            fontSize: '1.25rem',
-            color: '#555',
-            maxWidth: '800px',
-            margin: '0 auto 2rem'
+            marginBottom: '1.5rem',
+            lineHeight: '1.1',
+            maxWidth: '800px'
           }}>
-            Create lesson plans and activities in seconds, saving you hours of preparation time.
+            El poder de la <span style={{ color: '#6E3CD9' }}>IA</span> para ayudar a los <span style={{ color: '#6E3CD9' }}>educadores</span>
+          </h1>
+          <p style={{
+            fontSize: '1.35rem',
+            color: '#4b5563',
+            maxWidth: '800px',
+            margin: '0 auto 3rem',
+            lineHeight: '1.6',
+            fontWeight: '400'
+          }}>
+            Crea planes de lecciones y actividades en segundos, ahorrando horas de preparación y enfocándote más en tus estudiantes.
           </p>
           
           {isFlaskRunning === false && (
             <div style={{
               background: '#fff3cd',
               border: '1px solid #ffeeba',
-              borderRadius: '8px',
-              padding: '1rem',
+              borderRadius: '12px',
+              padding: '1.25rem',
               maxWidth: '800px',
               margin: '0 auto 2rem',
               textAlign: 'left',
               color: '#856404'
             }}>
-              <h3 style={{fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem'}}>Flask Server Not Running</h3>
-              <p style={{marginBottom: '0.5rem'}}>The Flask backend server appears to be offline. This application requires a running Flask server to function properly.</p>
-              <p style={{marginBottom: '0.5rem'}}>If you see "Connection failed" errors, please start the Flask server:</p>
-              <ol style={{marginLeft: '1.5rem'}}>
-                <li style={{marginBottom: '0.25rem'}}>Open a terminal</li>
-                <li style={{marginBottom: '0.25rem'}}>Navigate to your Flask project directory (<code style={{backgroundColor: '#f8f5eb', padding: '2px 4px', borderRadius: '3px'}}>~/Documents/demo-02/api/python</code>)</li>
-                <li style={{marginBottom: '0.25rem'}}>Run your Flask server: <code style={{backgroundColor: '#f8f5eb', padding: '2px 4px', borderRadius: '3px'}}>./start_server.sh</code></li>
-                <li>Ensure it's running on port 5338 (as configured in your .flask-port file)</li>
-              </ol>
-              <p>Until then, the application will use test data.</p>
+              <h3 style={{fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.5rem'}}>Servidor IA No Disponible</h3>
+              <p style={{marginBottom: '0.5rem'}}>El servidor backend de IA parece estar desconectado. Esta aplicación requiere un servidor Flask en funcionamiento para operar correctamente.</p>
+              <p style={{marginBottom: '0.5rem'}}>La aplicación utilizará datos de prueba mientras tanto.</p>
             </div>
           )}
           
@@ -250,8 +261,8 @@ export default function Home() {
             <div style={{
               background: '#f8d7da',
               border: '1px solid #f5c6cb',
-              borderRadius: '8px',
-              padding: '1rem',
+              borderRadius: '12px',
+              padding: '1.25rem',
               maxWidth: '800px',
               margin: '0 auto 2rem',
               textAlign: 'left',
@@ -259,51 +270,52 @@ export default function Home() {
             }}>
               <p style={{fontWeight: 'bold', marginBottom: '0.5rem'}}>{error}</p>
               {error.includes('Connection failed') && (
-                <p>The Flask server may not be running. The application will use sample data instead.</p>
+                <p>El servidor IA puede no estar funcionando. La aplicación usará datos de muestra.</p>
               )}
             </div>
           )}
           
           <div style={{
             display: 'flex',
-            gap: '1rem',
+            gap: '1.25rem',
             justifyContent: 'center',
             marginBottom: '2rem'
           }}>
             <button 
               onClick={generateLessonPlan}
               style={{
-                padding: '0.75rem 1.5rem',
+                padding: '1rem 2rem',
                 background: loading ? '#9ca3af' : '#6E3CD9',
                 color: 'white',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: '30px',
                 fontWeight: '600',
                 cursor: loading ? 'default' : 'pointer',
-                fontSize: '1rem',
-                transition: 'all 0.2s ease'
+                fontSize: '1.1rem',
+                transition: 'all 0.2s ease',
+                boxShadow: loading ? 'none' : '0 4px 14px rgba(110, 60, 217, 0.25)'
               }}
               disabled={loading}
             >
-              {loading ? 'Generating...' : 'Generate Lesson Plan'}
+              {loading ? 'Generando...' : 'Generar Plan de Lección'}
             </button>
             
             <button 
               onClick={generateActivities}
               style={{
-                padding: '0.75rem 1.5rem',
-                background: loading ? '#9ca3af' : '#16a34a',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
+                padding: '1rem 2rem',
+                background: loading ? '#9ca3af' : 'white',
+                color: loading ? 'white' : '#6E3CD9',
+                border: '2px solid #6E3CD9',
+                borderRadius: '30px',
                 fontWeight: '600',
                 cursor: loading ? 'default' : 'pointer',
-                fontSize: '1rem',
+                fontSize: '1.1rem',
                 transition: 'all 0.2s ease'
               }}
               disabled={loading}
             >
-              {loading ? 'Generating...' : 'Generate Activities'}
+              {loading ? 'Generando...' : 'Generar Actividades'}
             </button>
           </div>
           
@@ -326,6 +338,9 @@ export default function Home() {
             </div>
           )}
         </section>
+        
+        {/* Chat Form */}
+        <ChatForm />
         
         {/* Tabs for Results */}
         {(lessonPlan || activities.length > 0) && (
@@ -661,31 +676,100 @@ export default function Home() {
       </main>
       
       <footer style={{
-        background: '#f1f5f9',
-        borderTop: '1px solid #e2e8f0',
-        padding: '2rem 1rem',
-        marginTop: '3rem'
+        background: 'white',
+        borderTop: '1px solid #f1f5f9',
+        padding: '4rem 1.5rem',
+        marginTop: '4rem'
       }}>
         <div style={{
           maxWidth: '1200px',
           margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '3rem',
+        }}>
+          <div>
+            <h3 style={{
+              fontSize: '1.5rem',
+              fontWeight: '800',
+              margin: '0 0 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem'
+            }}>
+              <span style={{ color: '#6E3CD9' }}>Profe</span>Chat
+            </h3>
+            <p style={{
+              fontSize: '1rem',
+              color: '#4b5563',
+              lineHeight: '1.6',
+              marginBottom: '1.5rem',
+              maxWidth: '300px'
+            }}>
+              La plataforma de IA más completa para educadores, diseñada para ayudarte a ahorrar tiempo y mejorar tus clases.
+            </p>
+          </div>
+          
+          <div>
+            <h4 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.25rem', color: '#333' }}>Soluciones</h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Para Profesores</a></li>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Para Escuelas</a></li>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Para Estudiantes</a></li>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Privacidad y Seguridad</a></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.25rem', color: '#333' }}>Recursos</h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Soporte</a></li>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Recursos para Desarrollo</a></li>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Cursos de Certificación</a></li>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>FAQs</a></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.25rem', color: '#333' }}>Legal</h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Política de Privacidad</a></li>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Términos</a></li>
+              <li style={{ marginBottom: '0.75rem' }}><a href="#" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: '500' }}>Accesibilidad</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div style={{
+          maxWidth: '1200px',
+          margin: '3rem auto 0',
+          paddingTop: '2rem',
+          borderTop: '1px solid #f1f5f9',
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem'
         }}>
-          <p style={{
-            color: '#64748b',
-            margin: 0,
-            fontSize: '0.875rem'
-          }}>© 2023 ProfeChat. All rights reserved.</p>
-          
-          <div style={{
-            display: 'flex',
-            gap: '1.5rem'
-          }}>
-            <a href="#" style={{color: '#64748b', textDecoration: 'none', fontSize: '0.875rem'}}>Privacy Policy</a>
-            <a href="#" style={{color: '#64748b', textDecoration: 'none', fontSize: '0.875rem'}}>Terms of Service</a>
-            <a href="#" style={{color: '#64748b', textDecoration: 'none', fontSize: '0.875rem'}}>Contact</a>
+          <p style={{ color: '#9ca3af', margin: 0, fontSize: '0.9rem' }}>
+            © 2023 ProfeChat. Todos los derechos reservados.
+          </p>
+          <div style={{ display: 'flex', gap: '1.5rem' }}>
+            <a href="#" style={{ color: '#6E3CD9' }}>
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"></path>
+              </svg>
+            </a>
+            <a href="#" style={{ color: '#6E3CD9' }}>
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"></path>
+              </svg>
+            </a>
+            <a href="#" style={{ color: '#6E3CD9' }}>
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+            </a>
           </div>
         </div>
       </footer>
