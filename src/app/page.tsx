@@ -213,9 +213,9 @@ export default function Home() {
               <p style={{marginBottom: '0.5rem'}}>If you see "Connection failed" errors, please start the Flask server:</p>
               <ol style={{marginLeft: '1.5rem'}}>
                 <li style={{marginBottom: '0.25rem'}}>Open a terminal</li>
-                <li style={{marginBottom: '0.25rem'}}>Navigate to your Flask project directory</li>
-                <li style={{marginBottom: '0.25rem'}}>Run your Flask server (e.g., <code style={{backgroundColor: '#f8f5eb', padding: '2px 4px', borderRadius: '3px'}}>python app.py</code> or <code style={{backgroundColor: '#f8f5eb', padding: '2px 4px', borderRadius: '3px'}}>flask run</code>)</li>
-                <li>Ensure it's running on port 5000 (as configured in your .flask-port file)</li>
+                <li style={{marginBottom: '0.25rem'}}>Navigate to your Flask project directory (<code style={{backgroundColor: '#f8f5eb', padding: '2px 4px', borderRadius: '3px'}}>~/Documents/demo-02/api/python</code>)</li>
+                <li style={{marginBottom: '0.25rem'}}>Run your Flask server: <code style={{backgroundColor: '#f8f5eb', padding: '2px 4px', borderRadius: '3px'}}>./start_server.sh</code></li>
+                <li>Ensure it's running on port 5338 (as configured in your .flask-port file)</li>
               </ol>
               <p>Until then, the application will use test data.</p>
             </div>
