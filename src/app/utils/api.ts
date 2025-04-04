@@ -30,26 +30,15 @@ export const shouldUseTestData = (): boolean => {
     return true;
   }
   
-  // Check if we can access the Flask server
-  try {
-    // Try to read from .flask-port file first
-    const portFile = path.join(process.cwd(), '.flask-port');
-    if (fs.existsSync(portFile)) {
-      const portContent = fs.readFileSync(portFile, 'utf8').trim();
-      // Validate port - should be a number
-      const port = parseInt(portContent, 10);
-      if (!isNaN(port) && port > 0 && port < 65536) {
-        console.log(`Found valid Flask port ${port} in .flask-port file - will use real API`);
-        // Flask port is valid, we should use the real API
-        return false;
-      }
-    }
-  } catch (error) {
-    console.error('Error checking Flask port file:', error);
+  // In development, NEVER use test data - always try to connect to Flask
+  if (process.env.NODE_ENV === 'development') {
+    console.log('In development mode, always using real API');
+    return false;
   }
   
-  // If we've reached here without returning, use the fallback method
-  // Get Flask URL without logging (to avoid circular logs)
+  // This code should never be reached in normal operation
+  // But keeping as a fallback just in case
+  console.log('Using fallback method to determine if test data should be used');
   const flaskUrl = getFlaskUrlInternal();
   const useTestData = !flaskUrl;
   
