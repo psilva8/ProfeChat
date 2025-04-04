@@ -36,10 +36,13 @@ export default function Home() {
           `${prev}\nFlask status: ${flaskStatus || 'unknown'}\nRaw health data: ${JSON.stringify(data.services)}`
         );
         
-        // Only update state if status has changed to avoid re-renders
-        if (isOnline !== isFlaskRunning) {
-          console.log('Updating Flask running state:', isOnline);
-          setIsFlaskRunning(isOnline);
+        // Force the status to true if we detect it's online
+        if (isOnline) {
+          console.log('Setting Flask running state to true');
+          setIsFlaskRunning(true);
+        } else if (flaskStatus === 'offline' || flaskStatus === 'error') {
+          console.log('Setting Flask running state to false');
+          setIsFlaskRunning(false);
         }
       } catch (err) {
         console.error('Error checking Flask status:', err);
@@ -56,7 +59,7 @@ export default function Home() {
     
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
-  }, [isFlaskRunning]);
+  }, []); // Remove isFlaskRunning from dependency array
   
   const generateLessonPlan = async () => {
     setLoading(true);
