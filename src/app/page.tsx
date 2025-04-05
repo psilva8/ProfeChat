@@ -158,6 +158,19 @@ export default function Home() {
     }
   };
 
+  // Add this function to reset the environment
+  const resetEnvironment = () => {
+    console.log('Forcing development environment...');
+    // Reset any stored environment values in localStorage
+    localStorage.removeItem('next-env');
+    localStorage.removeItem('flask-env');
+    localStorage.removeItem('is_build');
+    localStorage.removeItem('environment');
+    
+    // Force refreshing the page to reset state
+    window.location.reload();
+  };
+
   return (
     <div style={{
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -674,6 +687,30 @@ export default function Home() {
           </section>
         )}
       </main>
+      
+      {/* Add this at the very bottom of your page, just before the closing footer */}
+      <div style={{ 
+        position: 'fixed', 
+        bottom: '20px', 
+        right: '20px', 
+        zIndex: 1000 
+      }}>
+        <button
+          onClick={resetEnvironment}
+          style={{
+            background: '#6E3CD9',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}
+        >
+          Reset Environment
+        </button>
+      </div>
       
       <footer style={{
         background: 'white',

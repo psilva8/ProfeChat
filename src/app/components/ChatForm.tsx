@@ -51,8 +51,8 @@ export default function ChatForm() {
       // Add a cache-busting parameter to prevent cached responses
       const timestamp = new Date().getTime();
       
-      // Use the direct-chat endpoint instead of chat
-      const response = await fetch(`/api/direct-chat?_=${timestamp}`, {
+      // Use our new force-generate endpoint that bypasses all checks
+      const response = await fetch(`/api/force-generate?_=${timestamp}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,16 +64,17 @@ export default function ChatForm() {
           message: currentInput,
           subject: selectedSubject 
         }),
+        cache: 'no-store'
       });
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Error from chat API (${response.status}):`, errorText);
+        console.error(`Error from force-generate API (${response.status}):`, errorText);
         throw new Error(`Error ${response.status}: ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('Received chat response (raw):', JSON.stringify(data).substring(0, 200) + '...');
+      console.log('Received response (raw):', JSON.stringify(data).substring(0, 200) + '...');
       
       if (!data.response) {
         console.error('Response missing response field:', data);
