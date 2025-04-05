@@ -51,7 +51,8 @@ export default function ChatForm() {
       // Add a cache-busting parameter to prevent cached responses
       const timestamp = new Date().getTime();
       
-      const response = await fetch(`/api/chat?_=${timestamp}`, {
+      // Use the direct-chat endpoint instead of chat
+      const response = await fetch(`/api/direct-chat?_=${timestamp}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +73,7 @@ export default function ChatForm() {
       }
       
       const data = await response.json();
-      console.log('Received chat response (raw):', JSON.stringify(data));
+      console.log('Received chat response (raw):', JSON.stringify(data).substring(0, 200) + '...');
       
       if (!data.response) {
         console.error('Response missing response field:', data);
@@ -90,35 +91,7 @@ export default function ChatForm() {
         console.error('WARNING: Received a test message response when we should be getting a real one');
         console.error(`Response starts with: ${data.response.substring(0, 100)}...`);
         
-        // If we got a test message but shouldn't, retry with a different approach
-        console.log('Retrying with direct approach to lesson plan API...');
-        
-        const retryResponse = await fetch(`/api/generate-lesson?_=${timestamp+1}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          },
-          body: JSON.stringify({ 
-            subject: selectedSubject || 'General',
-            grade: 'PRIMARIA',
-            topic: currentInput,
-            objectives: 'Responder a la consulta del usuario',
-            duration: '30 minutos'
-          }),
-        });
-        
-        if (!retryResponse.ok) {
-          throw new Error(`Retry failed with status ${retryResponse.status}`);
-        }
-        
-        const retryData = await retryResponse.json();
-        if (retryData && (retryData.data || retryData.lesson_plan)) {
-          console.log('Successfully got a real response from retry!');
-          data.response = retryData.data || retryData.lesson_plan;
-        }
+        throw new Error('Received test message when expecting real response');
       }
       
       const assistantMessage: ChatMessage = { 
@@ -131,7 +104,7 @@ export default function ChatForm() {
       console.error('Error sending message:', error);
       const errorMessage: ChatMessage = { 
         role: 'assistant', 
-        content: 'Lo siento, ocurrió un error al procesar tu mensaje. Por favor, intenta de nuevo más tarde.' 
+        content: 'Lo siento, ocurrió un error al procesar tu mensaje. Por favor, intenta recargar la página e intentar de nuevo.' 
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
