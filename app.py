@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect
 import os
 from flask_cors import CORS
 
@@ -9,8 +9,13 @@ CORS(app)  # Enable CORS for all routes
 # Define routes
 @app.route('/')
 def index():
-    """Serve the main HTML page"""
-    return send_from_directory('static', 'index.html')
+    """Redirect to the app main page"""
+    return redirect('/app')
+
+@app.route('/app')
+def app_page():
+    """Serve the main app page"""
+    return send_from_directory('static', 'app.html')
 
 @app.route('/test')
 def test():
