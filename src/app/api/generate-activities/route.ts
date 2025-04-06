@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFlaskUrl, shouldUseTestData } from '@/app/utils/api';
+import { callApi } from '@/app/utils/api';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Sample generated activities data for math
 const MATH_ACTIVITIES = [
@@ -91,15 +92,35 @@ function getTestActivities(subject: string, grade: string, topic: string) {
   const subjectLower = subject.toLowerCase();
   
   if (subjectLower.includes('mate') || subjectLower.includes('math')) {
-    return MATH_ACTIVITIES;
+    return {
+      success: true,
+      data: MATH_ACTIVITIES,
+      activities: MATH_ACTIVITIES,
+      message: 'Actividades de prueba para matemáticas'
+    };
   } else if (subjectLower.includes('comun') || subjectLower.includes('leng') || subjectLower.includes('espa')) {
-    return LANGUAGE_ACTIVITIES;
+    return {
+      success: true,
+      data: LANGUAGE_ACTIVITIES,
+      activities: LANGUAGE_ACTIVITIES,
+      message: 'Actividades de prueba para lenguaje'
+    };
   } else if (subjectLower.includes('cien') || subjectLower.includes('sci')) {
-    return SCIENCE_ACTIVITIES;
+    return {
+      success: true,
+      data: SCIENCE_ACTIVITIES,
+      activities: SCIENCE_ACTIVITIES,
+      message: 'Actividades de prueba para ciencias'
+    };
   }
   
   // Default to math activities if no match
-  return MATH_ACTIVITIES;
+  return {
+    success: true,
+    data: MATH_ACTIVITIES,
+    activities: MATH_ACTIVITIES,
+    message: 'Actividades de prueba generadas'
+  };
 }
 
 // Function to handle OPTIONS requests for CORS
@@ -139,97 +160,17 @@ export async function POST(request: NextRequest) {
     
     console.log(`Generating activities for: ${subject}, ${grade}, ${topic}`);
     
-    // Check if we should use test data
-    if (shouldUseTestData()) {
-      console.log('Using test data for activities generation');
-      const testActivities = getTestActivities(subject, grade, topic);
-      
-      return NextResponse.json({
-        success: true,
-        data: testActivities,
-        activities: testActivities,
-        message: 'Actividades de muestra generadas con datos de prueba'
-      });
-    }
+    // Get test data for this request
+    const testData = getTestActivities(subject, grade, topic);
     
-    // Get Flask API URL
-    const flaskUrl = getFlaskUrl();
+    // Use the callApi utility function
+    const responseData = await callApi('generate-activities', {
+      subject: subject,
+      grade: grade,
+      topic: topic
+    }, testData);
     
-    if (!flaskUrl) {
-      console.log('No Flask URL available, using test data');
-      const testActivities = getTestActivities(subject, grade, topic);
-      
-      return NextResponse.json({
-        success: true,
-        data: testActivities,
-        activities: testActivities,
-        message: 'Actividades de muestra generadas con datos de prueba (Flask no disponible)'
-      });
-    }
-    
-    console.log(`Attempting to connect to Flask API at: ${flaskUrl}/api/generate-activities`);
-    
-    try {
-      // Add a timeout to the fetch request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const response = await fetch(`${flaskUrl}/api/generate-activities`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      // Check if we got a 403 Forbidden, which might indicate a non-Flask service
-      if (response.status === 403) {
-        console.warn(`Port ${flaskUrl.split(':')[2].split('/')[0]} is in use by another service (received 403 Forbidden)`);
-        const testActivities = getTestActivities(subject, grade, topic);
-        
-        return NextResponse.json({
-          success: true,
-          data: testActivities,
-          activities: testActivities,
-          message: 'Actividades de muestra generadas con datos de prueba (puerto Flask en uso por otro servicio)'
-        });
-      }
-      
-      if (!response.ok) {
-        throw new Error(`Flask API returned status ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Flask API returned error');
-      }
-      
-      // Get activities from the response (handle both formats)
-      const activitiesData = data.data || data.activities || [];
-      
-      return NextResponse.json({
-        success: true,
-        data: activitiesData,
-        activities: activitiesData,
-        message: 'Actividades generadas correctamente'
-      });
-    } catch (error) {
-      console.error('Error connecting to Flask API:', error);
-      console.log('Falling back to test activities data');
-      
-      // Fallback to test data
-      const testActivities = getTestActivities(subject, grade, topic);
-      
-      return NextResponse.json({
-        success: true,
-        data: testActivities,
-        activities: testActivities,
-        message: 'Actividades de muestra generadas con datos de prueba (Flask no disponible)'
-      });
-    }
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error in generate-activities endpoint:', error);
     return NextResponse.json({ 
@@ -238,6 +179,6 @@ export async function POST(request: NextRequest) {
       activities: [], // Also include activities property for backward compatibility
       error: 'Failed to generate activities',
       message: error instanceof Error ? error.message : String(error)
-    }, { status: 500 });
+    }, { status: 200 }); // Return 200 status with error info instead of 500
   }
 } 

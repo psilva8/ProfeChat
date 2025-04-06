@@ -1,71 +1,146 @@
 import fs from 'fs';
 import path from 'path';
 
-// Check if we're in a build/production environment
-export const isBuildEnvironment = () => {
-  return process.env.NODE_ENV === 'production' || 
-         process.env.VERCEL_ENV === 'production' || 
-         process.env.VERCEL_ENV === 'preview' || 
-         process.env.CI === 'true';
-};
-
-// Get the Flask URL based on current environment
-export const getFlaskUrl = (): string => {
-  // Always return empty string in production to avoid fetch attempts
+/**
+ * Gets the Flask server URL for the API to use
+ * @returns {string} The Flask URL, or empty string if not available
+ */
+export function getFlaskUrl(): string {
+  // Never attempt to connect to Flask in production
   if (isBuildEnvironment()) {
-    console.log('Production environment detected, skipping Flask URL setup');
+    console.log('In production, not using Flask URL');
     return '';
   }
-  
-  return getFlaskUrlInternal();
-};
 
-// Function to determine whether to use test data
-export const shouldUseTestData = (): boolean => {
-  console.log('Checking if we should use test data...');
-  
-  // Always use test data in production environment
-  if (isBuildEnvironment()) {
-    console.log('Using test data because we are in a production environment');
-    return true;
+  try {
+    const portFile = path.join(process.cwd(), '.flask-port');
+    console.log(`Looking for Flask port file at ${portFile}`);
+    
+    if (fs.existsSync(portFile)) {
+      const portContent = fs.readFileSync(portFile, 'utf8').trim();
+      const port = parseInt(portContent, 10);
+      
+      if (!isNaN(port) && port > 0 && port < 65536) {
+        console.log(`Found valid Flask port ${port} in .flask-port file`);
+        return `http://localhost:${port}`;
+      } else {
+        console.warn(`Invalid port found in .flask-port: ${portContent}`);
+      }
+    } else {
+      console.log('No .flask-port file found');
+    }
+    
+    // If we reach here, try environment variable or default
+    const envPort = process.env.FLASK_SERVER_PORT;
+    if (envPort) {
+      console.log(`Using FLASK_SERVER_PORT from environment: ${envPort}`);
+      return `http://localhost:${envPort}`;
+    }
+    
+    // Last fallback
+    console.log('No valid Flask port found, using default 5338');
+    return 'http://localhost:5338';
+  } catch (error) {
+    console.error('Error reading Flask port:', error);
+    return '';
   }
+}
+
+/**
+ * Determines if the code is running in a build/production environment
+ * @returns {boolean} True if running in production/build environment
+ */
+export function isBuildEnvironment(): boolean {
+  // Check various ways to detect a production/build environment
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isVercelProd = process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview';
+  const isServerless = process.cwd() === '/var/task'; // Common in Vercel/AWS Lambda
+  const isPrerendering = typeof window === 'undefined';
   
-  // In development, NEVER use test data - always try to connect to Flask
-  if (process.env.NODE_ENV === 'development') {
+  const result = isProduction || isVercelProd || isServerless;
+  
+  if (isProduction) console.log('Build check: NODE_ENV is production');
+  if (isVercelProd) console.log('Build check: VERCEL_ENV is production or preview');
+  if (isServerless) console.log('Build check: Current directory is /var/task (serverless)');
+  
+  return result;
+}
+
+/**
+ * Determines if we should use test data instead of calling Flask
+ * @returns {boolean} True if test data should be used
+ */
+export function shouldUseTestData(): boolean {
+  // In development, never use test data unless explicitly forced
+  if (process.env.NODE_ENV === 'development' && process.env.FORCE_TEST_DATA !== 'true') {
     console.log('In development mode, always using real API');
     return false;
   }
   
-  // This code should never be reached in normal operation
-  // But keeping as a fallback just in case
-  console.log('Using fallback method to determine if test data should be used');
-  const flaskUrl = getFlaskUrlInternal();
+  // Check if we're in a build/production environment
+  if (isBuildEnvironment()) {
+    console.log('In production, using test data');
+    return true;
+  }
+  
+  // If Flask URL isn't available, use test data
+  const flaskUrl = getFlaskUrl();
   const useTestData = !flaskUrl;
   
   if (useTestData) {
-    console.log('Using test data because Flask URL is not available');
+    console.log('Flask URL not available, using test data');
   } else {
-    console.log('Using real API because Flask URL is available');
+    console.log('Flask URL available, using live API');
   }
   
   return useTestData;
-};
+}
 
-// Internal helper function to get Flask URL without triggering shouldUseTestData checks
-function getFlaskUrlInternal(): string {
+/**
+ * Makes an API call to the Flask server or returns test data in production
+ * @param {string} endpoint - The API endpoint without leading slash
+ * @param {any} data - The data to send in the request body
+ * @param {any} testData - The test data to return in production
+ * @returns {Promise<any>} The API response or test data
+ */
+export async function callApi(endpoint: string, data: any, testData: any): Promise<any> {
+  // In build/production environments, always return test data
+  if (shouldUseTestData()) {
+    console.log(`Using test data for ${endpoint}`);
+    return Promise.resolve(testData);
+  }
+  
   try {
-    const portFile = path.join(process.cwd(), '.flask-port');
-    if (fs.existsSync(portFile)) {
-      const portContent = fs.readFileSync(portFile, 'utf8').trim();
-      const port = parseInt(portContent, 10);
-      if (!isNaN(port) && port > 0 && port < 65536) {
-        return `http://localhost:${port}`;
-      }
+    const flaskUrl = getFlaskUrl();
+    if (!flaskUrl) {
+      console.log(`No Flask URL available for ${endpoint}, using test data`);
+      return Promise.resolve(testData);
     }
     
-    const flaskPort = process.env.FLASK_PORT || '5000';
-    return `http://localhost:${flaskPort}`;
+    console.log(`Calling Flask API: ${flaskUrl}/api/${endpoint}`);
+    const response = await fetch(`${flaskUrl}/api/${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+      },
+      body: JSON.stringify(data),
+      cache: 'no-store',
+      // Add a timeout to prevent hanging requests
+      signal: AbortSignal.timeout(20000) // 20 seconds timeout
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error (${response.status}) from ${endpoint}:`, errorText);
+      throw new Error(`API error: ${response.status} - ${errorText || 'Unknown error'}`);
+    }
+    
+    const responseData = await response.json();
+    console.log(`Received response from ${endpoint}`);
+    return responseData;
   } catch (error) {
-    return '';
+    console.error(`Error calling ${endpoint}:`, error);
+    return Promise.resolve(testData);
   }
 } 

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFlaskUrl, shouldUseTestData } from '@/app/utils/api';
+import { getFlaskUrl, shouldUseTestData, callApi } from '@/app/utils/api';
 import fs from 'fs';
 import path from 'path';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Function to handle OPTIONS requests for CORS
 export async function OPTIONS() {
@@ -80,65 +81,22 @@ export async function POST(request: NextRequest) {
 
     console.log(`Generate request for: ${subject}, ${grade}, ${topic}`);
 
-    // Check if we're in a production/preview environment (Vercel)
-    const isProduction = process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview';
-    const isBuildEnv = process.cwd() === '/var/task';
-    const shouldUseTest = shouldUseTestData();
-    
-    console.log(`Environment check: isProduction=${isProduction}, isBuildEnv=${isBuildEnv}, shouldUseTest=${shouldUseTest}`);
-    
-    // In production or if test data is requested, return the test lesson plan
-    if (isProduction || isBuildEnv || shouldUseTest || process.env.NODE_ENV === 'production') {
-      console.log('Using test data for lesson plan');
-      return NextResponse.json(generateTestLessonPlan(subject || 'General', grade || 'All Grades', topic || 'General Subject'));
-    }
+    // Use the callApi utility function to handle the request
+    const testData = generateTestLessonPlan(
+      subject || 'General', 
+      grade || 'All Grades', 
+      topic || 'General Subject'
+    );
 
-    // Only try to connect to Flask in development
-    const flaskUrl = getFlaskUrl();
-    
-    if (!flaskUrl) {
-      console.error('Could not determine Flask URL');
-      return NextResponse.json(
-        generateTestLessonPlan(subject || 'General', grade || 'All Grades', topic || 'General Subject')
-      );
-    }
+    const responseData = await callApi('generate-lesson', {
+      subject: subject || 'General',
+      grade: grade || 'PRIMARIA',
+      topic: topic || '',
+      objectives: objectives || 'Responder a la consulta del usuario',
+      duration: duration || '30 minutos'
+    }, testData);
 
-    console.log(`Connecting to Flask at ${flaskUrl}/api/generate-lesson`);
-    
-    try {
-      const flaskResponse = await fetch(`${flaskUrl}/api/generate-lesson`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subject: subject || 'General',
-          grade: grade || 'PRIMARIA',
-          topic: topic || '',
-          objectives: objectives || 'Responder a la consulta del usuario',
-          duration: duration || '30 minutos'
-        }),
-        signal: AbortSignal.timeout(20000) // 20 second timeout
-      });
-
-      if (!flaskResponse.ok) {
-        const errorText = await flaskResponse.text();
-        console.error(`Flask API error: ${flaskResponse.status}`, errorText);
-        return NextResponse.json(
-          generateTestLessonPlan(subject || 'General', grade || 'All Grades', topic || 'General Subject')
-        );
-      }
-
-      const flaskData = await flaskResponse.json();
-      console.log('Successfully received response from Flask');
-      
-      return NextResponse.json(flaskData);
-    } catch (error) {
-      console.error('Error connecting to Flask:', error);
-      return NextResponse.json(
-        generateTestLessonPlan(subject || 'General', grade || 'All Grades', topic || 'General Subject')
-      );
-    }
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error in generate-lesson API:', error);
     return NextResponse.json({ 
