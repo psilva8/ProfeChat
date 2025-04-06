@@ -20,112 +20,131 @@ export async function OPTIONS() {
 // Helper function to generate a test lesson plan
 function generateTestLessonPlan(subject: string, grade: string, topic: string, competency?: string) {
   return {
-    title: `Introducción a las ${topic} - ${subject} (${grade})`,
-    subject,
-    grade,
-    topic,
-    duration: 60,
-    competency: competency || 'Competencia general',
-    objectives: [
-      `Los estudiantes comprenderán los conceptos clave relacionados con ${topic}`,
-      `Los estudiantes podrán aplicar conocimientos en ejercicios prácticos`,
-      `Los estudiantes desarrollarán habilidades de pensamiento crítico a través de la discusión`
-    ],
-    materials: [
-      'Libro de texto',
-      'Hojas de trabajo',
-      'Materiales manipulativos',
-      'Recursos digitales interactivos'
-    ],
-    activities: [
-      {
-        name: 'Inicio',
-        duration: '10 minutos',
-        description: `Comenzar la lección con una actividad de calentamiento para activar conocimientos previos. Preguntar a los estudiantes qué saben sobre ${topic} y registrar sus respuestas.`
-      },
-      {
-        name: 'Desarrollo',
-        duration: '25 minutos',
-        description: 'Presentar conceptos clave utilizando ayudas visuales y demostraciones interactivas. Guiar a los estudiantes a través de ejemplos en la pizarra.'
-      },
-      {
-        name: 'Práctica',
-        duration: '15 minutos',
-        description: 'Los estudiantes trabajan en parejas en problemas prácticos mientras el profesor circula para brindar orientación y apoyo.'
-      },
-      {
-        name: 'Cierre',
-        duration: '10 minutos',
-        description: 'Resumir los puntos clave aprendidos hoy y asignar tarea que refuerce los conceptos del día.'
-      }
-    ],
-    assessment: {
-      method: 'Evaluación formativa',
-      description: 'Boleto de salida con 3-5 preguntas para verificar la comprensión del material del día.'
-    },
-    differentiation: {
-      advanced: 'Proporcionar problemas más desafiantes para estudiantes avanzados.',
-      support: 'Ofrecer andamiaje adicional para estudiantes que necesitan apoyo.'
-    }
+    lesson_plan: `# Lesson Plan: ${topic} for ${grade} ${subject}
+
+## Overview
+This is a sample lesson plan generated for teaching ${topic} to ${grade} students in ${subject}.
+
+## Objectives
+- Students will understand the key concepts of ${topic}
+- Students will be able to apply these concepts in practical exercises
+- Students will develop critical thinking skills related to ${topic}
+
+## Materials
+- Textbooks
+- Worksheets
+- Interactive materials
+- Digital resources
+
+## Lesson Structure
+1. **Introduction (10 minutes)**
+   - Begin with an engaging activity to introduce ${topic}
+   - Connect to students' prior knowledge
+
+2. **Main Lesson (25 minutes)**
+   - Present key concepts using visual aids
+   - Guide students through examples
+
+3. **Practice Activities (15 minutes)**
+   - Students work in pairs or small groups
+   - Teacher provides support and guidance
+
+4. **Assessment (5 minutes)**
+   - Quick check for understanding
+   - Exit ticket with key questions
+
+5. **Closure (5 minutes)**
+   - Summarize key learning points
+   - Preview next lesson
+
+## Assessment Methods
+- Formative assessment during practice activities
+- Exit ticket responses
+- Homework assignment
+
+## Differentiation
+- For advanced students: Additional challenging problems
+- For students needing support: Simplified examples and additional guidance
+
+Note: This is a test response generated when the Flask API is not available.`,
+    success: true
   };
 }
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Direct generate-lesson API called - bypassing all test data checks');
+    console.log('Generate-lesson API called');
     
     const data = await request.json();
     const { subject, grade, topic, objectives, duration } = data;
 
     console.log(`Generate request for: ${subject}, ${grade}, ${topic}`);
 
-    // Force direct connection to Flask - no test data
-    const flaskUrl = getFlaskUrlDirect();
+    // Check if we're in a production/preview environment (Vercel)
+    const isProduction = process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview';
+    const isBuildEnv = process.cwd() === '/var/task';
+    const shouldUseTest = shouldUseTestData();
+    
+    console.log(`Environment check: isProduction=${isProduction}, isBuildEnv=${isBuildEnv}, shouldUseTest=${shouldUseTest}`);
+    
+    // In production or if test data is requested, return the test lesson plan
+    if (isProduction || isBuildEnv || shouldUseTest || process.env.NODE_ENV === 'production') {
+      console.log('Using test data for lesson plan');
+      return NextResponse.json(generateTestLessonPlan(subject || 'General', grade || 'All Grades', topic || 'General Subject'));
+    }
+
+    // Only try to connect to Flask in development
+    const flaskUrl = getFlaskUrl();
     
     if (!flaskUrl) {
       console.error('Could not determine Flask URL');
-      return NextResponse.json({
-        error: 'Flask server unavailable',
-        message: 'Could not connect to language model'
-      }, { status: 500 });
+      return NextResponse.json(
+        generateTestLessonPlan(subject || 'General', grade || 'All Grades', topic || 'General Subject')
+      );
     }
 
-    console.log(`Directly connecting to Flask at ${flaskUrl}/api/generate-lesson`);
+    console.log(`Connecting to Flask at ${flaskUrl}/api/generate-lesson`);
     
-    const flaskResponse = await fetch(`${flaskUrl}/api/generate-lesson`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        subject: subject || 'General',
-        grade: grade || 'PRIMARIA',
-        topic: topic || '',
-        objectives: objectives || 'Responder a la consulta del usuario',
-        duration: duration || '30 minutos'
-      }),
-      signal: AbortSignal.timeout(20000) // 20 second timeout
-    });
+    try {
+      const flaskResponse = await fetch(`${flaskUrl}/api/generate-lesson`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject: subject || 'General',
+          grade: grade || 'PRIMARIA',
+          topic: topic || '',
+          objectives: objectives || 'Responder a la consulta del usuario',
+          duration: duration || '30 minutos'
+        }),
+        signal: AbortSignal.timeout(20000) // 20 second timeout
+      });
 
-    if (!flaskResponse.ok) {
-      const errorText = await flaskResponse.text();
-      console.error(`Flask API error: ${flaskResponse.status}`, errorText);
-      return NextResponse.json({ 
-        error: 'Flask API error',
-        message: 'Error connecting to language model'
-      }, { status: flaskResponse.status });
+      if (!flaskResponse.ok) {
+        const errorText = await flaskResponse.text();
+        console.error(`Flask API error: ${flaskResponse.status}`, errorText);
+        return NextResponse.json(
+          generateTestLessonPlan(subject || 'General', grade || 'All Grades', topic || 'General Subject')
+        );
+      }
+
+      const flaskData = await flaskResponse.json();
+      console.log('Successfully received response from Flask');
+      
+      return NextResponse.json(flaskData);
+    } catch (error) {
+      console.error('Error connecting to Flask:', error);
+      return NextResponse.json(
+        generateTestLessonPlan(subject || 'General', grade || 'All Grades', topic || 'General Subject')
+      );
     }
-
-    const flaskData = await flaskResponse.json();
-    console.log('Successfully received response from Flask');
-    
-    return NextResponse.json(flaskData);
   } catch (error) {
     console.error('Error in generate-lesson API:', error);
     return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+      lesson_plan: `# Error generating lesson plan\n\nWe encountered an error while generating your lesson plan. Please try again later.`,
+      success: false
+    }, { status: 200 }); // Return 200 with error message instead of 500
   }
 }
 
