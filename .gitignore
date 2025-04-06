@@ -1,28 +1,20 @@
-# Dependencies
+# Node.js dependencies
 /node_modules
 /.pnp
 .pnp.js
 
+# Next.js build output
+/.next/
+/out/
+/build
+
+# Specifically exclude large Next.js files
+**/*.node
+
 # Testing
 /coverage
 
-# Next.js
-/.next/
-/out/
-
-# Production
-/build
-
-# Misc
-.DS_Store
-*.pem
-
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Local env files
+# Environment variables
 .env*.local
 
 # Vercel
@@ -32,5 +24,19 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Package Manager locks
-package-lock.json 
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# macOS
+.DS_Store
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+/.idea
+/.vscode 
