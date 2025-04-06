@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProfeChat - Lesson Plan Generator</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        header {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            margin: 0;
+            color: #333;
+        }
+        h1 span {
+            color: #6E3CD9;
+        }
+        nav {
+            display: flex;
+            gap: 20px;
+        }
+        nav a {
+            color: #555;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        nav a:hover {
+            color: #6E3CD9;
+        }
+        .hero {
+            text-align: center;
+            padding: 40px 0;
+            margin-bottom: 40px;
+        }
+        .hero h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            color: #666;
+            max-width: 800px;
+            margin: 0 auto 30px;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .button {
+            background-color: #6E3CD9;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .button:hover {
+            background-color: #5c31b6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(110, 60, 217, 0.2);
+        }
+        .button.outline {
+            background-color: transparent;
+            color: #6E3CD9;
+            border: 2px solid #6E3CD9;
+        }
+        .button.outline:hover {
+            background-color: #f0ebff;
+        }
+        .form-section {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .result {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 30px;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .loader {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .loader div {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: #6E3CD9;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+            margin: 0 5px;
+        }
+        .loader div:nth-child(1) { animation-delay: -0.32s; }
+        .loader div:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+        .error {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            border-bottom: 2px solid #6E3CD9;
+            color: #6E3CD9;
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><span>Profe</span>Chat</h1>
+        <nav>
+            <a href="#" style="color: #6E3CD9; font-weight: 600;">Inicio</a>
+            <a href="#">Herramientas</a>
+            <a href="#">Recursos</a>
+            <a href="#">Acerca de</a>
+        </nav>
+    </header>
+
+    <div class="hero">
+        <h2>El poder de la <span style="color: #6E3CD9;">IA</span> para ayudar a los <span style="color: #6E3CD9;">educadores</span></h2>
+        <p>Crea planes de lecciones y actividades en segundos, ahorrando horas de preparación y enfocándote más en tus estudiantes.</p>
+    </div>
+
+    <div class="buttons">
+        <button id="lessonPlanBtn" class="button">Generar Plan de Lección</button>
+        <button id="activitiesBtn" class="button outline">Generar Actividades</button>
+    </div>
+
+    <div id="errorMessage" class="error">
+        <strong>Error:</strong> <span id="errorText"></span>
+    </div>
+
+    <div id="lessonPlanForm" class="form-section">
+        <h2>Generar Plan de Lección</h2>
+        <form id="generateLessonForm">
+            <div class="form-group">
+                <label for="subject">Asignatura</label>
+                <select id="subject" name="subject" required>
+                    <option value="Matemática">Matemática</option>
+                    <option value="Comunicación">Comunicación</option>
+                    <option value="Ciencia">Ciencia</option>
+                    <option value="Historia">Historia</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="grade">Grado</label>
+                <select id="grade" name="grade" required>
+                    <option value="PRIMARIA">Primaria</option>
+                    <option value="SECUNDARIA">Secundaria</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="topic">Tema</label>
+                <input type="text" id="topic" name="topic" required placeholder="Ej: Fracciones, Redacción de cuentos, etc.">
+            </div>
+            <button type="submit" class="button">Generar Plan de Lección</button>
+        </form>
+        
+        <div id="loader" class="loader">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+    </div>
+
+    <div id="result" class="result">
+        <div class="tabs">
+            <div id="lessonPlanTab" class="tab active">Plan de Lección</div>
+            <div id="activitiesTab" class="tab">Actividades</div>
+        </div>
+        <div id="lessonPlanContent" class="tab-content active"></div>
+        <div id="activitiesContent" class="tab-content"></div>
+    </div>
+
+    <script>
+        // Elements
+        const lessonPlanBtn = document.getElementById('lessonPlanBtn');
+        const activitiesBtn = document.getElementById('activitiesBtn');
+        const lessonPlanForm = document.getElementById('lessonPlanForm');
+        const generateLessonForm = document.getElementById('generateLessonForm');
+        const loader = document.getElementById('loader');
+        const result = document.getElementById('result');
+        const lessonPlanContent = document.getElementById('lessonPlanContent');
+        const activitiesContent = document.getElementById('activitiesContent');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const lessonPlanTab = document.getElementById('lessonPlanTab');
+        const activitiesTab = document.getElementById('activitiesTab');
+
+        // Initially hide the form until a button is clicked
+        lessonPlanForm.style.display = 'none';
+
+        // Functions
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function showLoader() {
+            loader.style.display = 'block';
+        }
+
+        function hideLoader() {
+            loader.style.display = 'none';
+        }
+
+        async function generateLessonPlan(event) {
+            if (event) event.preventDefault();
+            showLoader();
+            
+            try {
+                const subject = document.getElementById('subject').value;
+                const grade = document.getElementById('grade').value;
+                const topic = document.getElementById('topic').value;
+                
+                if (!topic) {
+                    throw new Error('Please enter a topic');
+                }
+                
+                console.log(`Generating lesson plan for: ${subject}, ${grade}, ${topic}`);
+                
+                const response = await fetch('/api/generate-lesson', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ subject, grade, topic })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || 'Error generating lesson plan');
+                }
+                
+                // Display result
+                lessonPlanContent.innerHTML = formatMarkdown(data.lesson_plan);
+                result.style.display = 'block';
+                
+                // Make the lesson plan tab active
+                lessonPlanTab.classList.add('active');
+                activitiesTab.classList.remove('active');
+                lessonPlanContent.classList.add('active');
+                activitiesContent.classList.remove('active');
+                
+                console.log('Lesson plan generated successfully');
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || 'An error occurred');
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function generateActivities() {
+            showLoader();
+            
+            try {
+                const subject = document.getElementById('subject').value;
+                const grade = document.getElementById('grade').value;
+                const topic = document.getElementById('topic').value;
+                
+                if (!topic) {
+                    throw new Error('Please enter a topic');
+                }
+                
+                console.log(`Generating activities for: ${subject}, ${grade}, ${topic}`);
+                
+                const response = await fetch('/api/generate-activities', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ subject, grade, topic })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || 'Error generating activities');
+                }
+                
+                // Display result
+                const activitiesData = data.activities || data.data;
+                activitiesContent.innerHTML = formatText(activitiesData);
+                result.style.display = 'block';
+                
+                // Make the activities tab active
+                lessonPlanTab.classList.remove('active');
+                activitiesTab.classList.add('active');
+                lessonPlanContent.classList.remove('active');
+                activitiesContent.classList.add('active');
+                
+                console.log('Activities generated successfully');
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || 'An error occurred');
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function formatMarkdown(markdown) {
+            if (!markdown) return '';
+            
+            // Basic markdown formatting
+            return markdown
+                // Headers
+                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                // Bold
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                // Italic
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                // Lists
+                .replace(/^\s*-\s*(.*)$/gm, '<li>$1</li>')
+                // Paragraphs
+                .replace(/^(?!<[hl]|<li)(.+)$/gm, '<p>$1</p>')
+                // Wrap lists
+                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+        }
+
+        function formatText(text) {
+            if (!text) return '';
+            
+            // Basic text formatting
+            return '<pre>' + text + '</pre>';
+        }
+
+        // Event Listeners - Add console logs to debug
+        generateLessonForm.addEventListener('submit', (e) => {
+            console.log('Form submitted');
+            generateLessonPlan(e);
+        });
+        
+        lessonPlanBtn.addEventListener('click', () => {
+            console.log('Lesson plan button clicked');
+            lessonPlanForm.style.display = 'block';
+        });
+        
+        activitiesBtn.addEventListener('click', () => {
+            console.log('Activities button clicked');
+            if (document.getElementById('topic').value) {
+                generateActivities();
+            } else {
+                lessonPlanForm.style.display = 'block';
+                showError('Please fill in the topic field first');
+            }
+        });
+        
+        lessonPlanTab.addEventListener('click', () => {
+            console.log('Lesson plan tab clicked');
+            lessonPlanTab.classList.add('active');
+            activitiesTab.classList.remove('active');
+            lessonPlanContent.classList.add('active');
+            activitiesContent.classList.remove('active');
+        });
+        
+        activitiesTab.addEventListener('click', () => {
+            console.log('Activities tab clicked');
+            lessonPlanTab.classList.remove('active');
+            activitiesTab.classList.add('active');
+            lessonPlanContent.classList.remove('active');
+            activitiesContent.classList.add('active');
+        });
+
+        // Add this code to see if it logs anything when the page loads
+        console.log('Script loaded, elements found:');
+        console.log('- lessonPlanBtn:', lessonPlanBtn ? 'yes' : 'no');
+        console.log('- activitiesBtn:', activitiesBtn ? 'yes' : 'no');
+        console.log('- lessonPlanForm:', lessonPlanForm ? 'yes' : 'no');
+        console.log('- generateLessonForm:', generateLessonForm ? 'yes' : 'no');
+    </script>
+</body>
+</html> 
