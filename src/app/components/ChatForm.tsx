@@ -43,12 +43,13 @@ export default function ChatForm() {
     setIsLoading(true);
     
     try {
+      // DIRECTLY CONTACT FLASK API - bypass all Next.js middleware
+      console.log('Directly contacting Flask API without going through Next.js');
+      
       // Add timestamp for cache busting
       const timestamp = new Date().getTime();
       
-      // Use the force-generate endpoint that uses direct HTTP connection
-      console.log('Using force-generate endpoint with direct HTTP connection');
-      const response = await fetch(`/api/force-generate?t=${timestamp}`, {
+      const response = await fetch(`http://localhost:5338/api/generate-lesson`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,10 +58,10 @@ export default function ChatForm() {
           'Expires': '0'
         },
         body: JSON.stringify({
-          subject: selectedSubject,
+          subject: selectedSubject || 'General',
           grade: 'All',
           topic: input,
-          _timestamp: timestamp // Include in body as well
+          _timestamp: timestamp
         })
       });
       
@@ -72,13 +73,9 @@ export default function ChatForm() {
       console.log('Response data:', data);
       
       // Check if this is a test response
-      const responseText = data.response || 'No response received';
-      if (responseText.includes('This is a test response generated when the Flask API is not available')) {
-        console.error('Received test data response even with force-generate endpoint');
-        throw new Error('Still receiving test data. Flask API might be down.');
-      }
+      const responseText = data.lesson_plan || 'No response received';
       
-      // Use the response field from our endpoint
+      // Use the lesson_plan field from the Flask API response
       const assistantMessage: ChatMessage = { 
         role: 'assistant' as const, 
         content: responseText
@@ -326,7 +323,7 @@ export default function ChatForm() {
         </div>
       </div>
       
-      <style jsx global>{`
+      <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
