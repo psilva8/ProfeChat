@@ -43,16 +43,23 @@ export default function ChatForm() {
     setIsLoading(true);
     
     try {
-      // Use the correct endpoint that works with your Flask backend
-      const response = await fetch('/api/generate-lesson', {
+      // Add timestamp for cache busting
+      const timestamp = new Date().getTime();
+      
+      // Use the force-generate endpoint to bypass all environment checks
+      const response = await fetch(`/api/force-generate?t=${timestamp}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         },
         body: JSON.stringify({
           subject: selectedSubject,
           grade: 'All',
-          topic: input
+          topic: input,
+          _timestamp: timestamp // Include in body as well
         }),
         cache: 'no-store'
       });
@@ -62,11 +69,19 @@ export default function ChatForm() {
       }
       
       const data = await response.json();
+      console.log('Response data:', data);
+      
+      // Check if this is a test response
+      const responseText = data.response || data.lesson_plan || 'No response received';
+      if (responseText.includes('This is a test response generated when the Flask API is not available')) {
+        console.error('Received test data response even with force-generate endpoint');
+        throw new Error('Still receiving test data. Flask API might be down.');
+      }
       
       // Use the correct field from the response
       const assistantMessage: ChatMessage = { 
         role: 'assistant' as const, 
-        content: data.lesson_plan || data.response || 'No response received'
+        content: responseText
       };
       
       setMessages(prevMessages => [...prevMessages, assistantMessage]);
@@ -74,7 +89,7 @@ export default function ChatForm() {
       console.error('Error:', error);
       const errorMessage: ChatMessage = { 
         role: 'assistant' as const, 
-        content: 'Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo.'
+        content: `Lo siento, ha ocurrido un error al procesar tu solicitud: ${error instanceof Error ? error.message : 'Error desconocido'}. Por favor, verifica que el servidor Flask esté funcionando correctamente.`
       };
       setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
