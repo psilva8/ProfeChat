@@ -1,111 +1,58 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { directFlaskConnection } from '@/app/utils/api';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function POST(request: Request) {
-  console.log('FORCE-GENERATE API called - NO ENVIRONMENT CHECKS');
+  console.log('FORCE-GENERATE API called - Using direct HTTP connection method');
   
   try {
     // Get request data
     const data = await request.json();
     console.log('Request data:', data);
     
-    // Add a timestamp to help with debugging
-    const timestamp = new Date().toISOString();
-    console.log(`Request timestamp: ${timestamp}`);
+    // Add timestamp for cache busting
+    const timestamp = new Date().getTime();
+    data._timestamp = timestamp;
     
-    // Directly use port 5338 - no env checks, no file reading
-    const flaskUrl = 'http://localhost:5338';
-    console.log(`Direct connection to ${flaskUrl}/api/generate-lesson`);
-    
-    // Try to connect with a timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+    console.log('Using directFlaskConnection to bypass all middleware');
     
     try {
-      console.log('Sending request to Flask API...');
-      const response = await fetch(`${flaskUrl}/api/generate-lesson`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
-        body: JSON.stringify({
-          subject: data.subject || 'General',
-          grade: data.grade || 'PRIMARIA',
-          topic: data.message || data.topic || '',
-          objectives: data.objectives || 'Responder a la consulta del usuario',
-          duration: data.duration || '30 minutos',
-          _timestamp: timestamp // Include timestamp for debugging
-        }),
-        cache: 'no-store',
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      console.log(`Flask API response status: ${response.status}`);
-      
-      if (!response.ok) {
-        console.error(`Flask API error: ${response.status}`);
-        const errorText = await response.text();
-        console.error(`Error response: ${errorText}`);
-        return NextResponse.json({ 
-          response: `Error connecting to Flask API. Status: ${response.status}. Details: ${errorText}`,
-          success: false
-        }, { status: 500 });
-      }
-      
-      // Check if we got a valid JSON response
-      const responseText = await response.text();
-      console.log(`Response text (first 100 chars): ${responseText.substring(0, 100)}...`);
-      
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-        console.log('Successfully parsed JSON response');
-      } catch (parseError) {
-        console.error('Failed to parse JSON response:', parseError);
-        return NextResponse.json({ 
-          response: `Error parsing Flask API response: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}. Raw response: ${responseText.substring(0, 200)}...`,
-          success: false
-        }, { status: 500 });
-      }
-      
-      console.log('Response data keys:', Object.keys(responseData).join(', '));
+      const response = await directFlaskConnection('generate-lesson', data);
+      console.log('Response received:', Object.keys(response).join(', '));
       
       // Determine what field to use
       let result;
-      if (responseData.lesson_plan) {
+      if (response.lesson_plan) {
         console.log('Using lesson_plan field');
-        result = responseData.lesson_plan;
-      } else if (responseData.data) {
+        result = response.lesson_plan;
+      } else if (response.data) {
         console.log('Using data field');
-        result = responseData.data;
+        result = response.data;
       } else {
         console.log('Using full response');
-        result = JSON.stringify(responseData);
+        result = JSON.stringify(response);
+      }
+      
+      // Check for test messages
+      if (result.includes('This is a test response generated when the Flask API is not available')) {
+        console.error('ERROR: Still got test response even with direct connection');
+      } else {
+        console.log('SUCCESS: Got real data, not test response');
       }
       
       return NextResponse.json({ 
         response: result,
-        success: true
+        success: true,
+        method: 'direct-http'
       });
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        console.error('Request to Flask API timed out after 15 seconds');
-        return NextResponse.json({ 
-          response: 'Request to Flask API timed out. Please check if the Flask server is running correctly.',
-          success: false
-        }, { status: 504 });
-      }
-      throw fetchError; // Re-throw for the outer catch block
+    } catch (error) {
+      console.error('Direct connection failed:', error);
+      return NextResponse.json({ 
+        response: `Direct connection to Flask failed: ${error instanceof Error ? error.message : String(error)}`,
+        success: false
+      }, { status: 500 });
     }
   } catch (error) {
     console.error('Error in force-generate API:', error);

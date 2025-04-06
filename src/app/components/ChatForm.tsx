@@ -43,40 +43,18 @@ export default function ChatForm() {
     setIsLoading(true);
     
     try {
-      // First test the connection to Flask
-      console.log('Testing direct connection to Flask...');
-      const testResponse = await fetch(`http://localhost:5338/api/health`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          'Accept': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      });
-      
-      if (!testResponse.ok) {
-        throw new Error(`Flask health check failed: ${testResponse.status}`);
-      }
-      
-      const testData = await testResponse.json();
-      console.log('Flask health check successful:', testData);
-      
       // Add timestamp for cache busting
       const timestamp = new Date().getTime();
       
-      // Connect directly to the Flask server on port 5338
-      console.log('Connecting directly to Flask API...');
-      const response = await fetch(`http://localhost:5338/api/generate-lesson`, {
+      // Use the force-generate endpoint that uses direct HTTP connection
+      console.log('Using force-generate endpoint with direct HTTP connection');
+      const response = await fetch(`/api/force-generate?t=${timestamp}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
-          'Expires': '0',
-          'Accept': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Expires': '0'
         },
         body: JSON.stringify({
           subject: selectedSubject,
@@ -94,13 +72,13 @@ export default function ChatForm() {
       console.log('Response data:', data);
       
       // Check if this is a test response
-      const responseText = data.lesson_plan || data.response || 'No response received';
+      const responseText = data.response || 'No response received';
       if (responseText.includes('This is a test response generated when the Flask API is not available')) {
-        console.error('Received test data response');
+        console.error('Received test data response even with force-generate endpoint');
         throw new Error('Still receiving test data. Flask API might be down.');
       }
       
-      // Use the correct field from the response
+      // Use the response field from our endpoint
       const assistantMessage: ChatMessage = { 
         role: 'assistant' as const, 
         content: responseText

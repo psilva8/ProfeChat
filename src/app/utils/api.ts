@@ -142,4 +142,81 @@ export async function callApi(endpoint: string, data: any, testData: any): Promi
     console.error(`Error calling ${endpoint}:`, error);
     return Promise.resolve(testData);
   }
+}
+
+/**
+ * This is a last resort option that uses Node.js http module to directly connect
+ * to Flask, bypassing all possible middleware, proxies, and environment checks
+ * @param endpoint API endpoint without leading slash
+ * @param data Request data
+ * @returns Promise with the API response
+ */
+export function directFlaskConnection(endpoint: string, data: any): Promise<any> {
+  console.log(`DIRECT HTTP CONNECTION to Flask API: ${endpoint}`);
+  
+  return new Promise((resolve, reject) => {
+    try {
+      // Use Node's native http module
+      const http = require('http');
+      
+      const requestBody = JSON.stringify(data || {});
+      
+      const options = {
+        hostname: '127.0.0.1',  // Always use loopback, not localhost
+        port: 5338,             // Hardcoded for reliability
+        path: `/api/${endpoint}`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(requestBody),
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        timeout: 30000 // 30 second timeout
+      };
+      
+      console.log('Making direct HTTP request...');
+      
+      const req = http.request(options, (res: any) => {
+        console.log(`HTTP Status: ${res.statusCode}`);
+        
+        let responseData = '';
+        
+        res.on('data', (chunk: any) => {
+          responseData += chunk;
+        });
+        
+        res.on('end', () => {
+          if (res.statusCode !== 200) {
+            console.error(`HTTP error: ${res.statusCode}`);
+            reject(new Error(`HTTP error: ${res.statusCode}, ${responseData}`));
+            return;
+          }
+          
+          try {
+            const response = JSON.parse(responseData);
+            console.log('Successfully parsed JSON response');
+            resolve(response);
+          } catch (err) {
+            console.error('Failed to parse JSON:', err);
+            reject(new Error(`Invalid JSON response: ${responseData.substring(0, 100)}...`));
+          }
+        });
+      });
+      
+      req.on('error', (error: any) => {
+        console.error('HTTP request error:', error);
+        reject(error);
+      });
+      
+      req.write(requestBody);
+      req.end();
+      
+      console.log('Direct HTTP request sent');
+    } catch (error) {
+      console.error('Error setting up direct HTTP request:', error);
+      reject(error);
+    }
+  });
 } 
