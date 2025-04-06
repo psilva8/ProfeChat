@@ -71,8 +71,8 @@ export function isBuildEnvironment(): boolean {
  * @returns {boolean} True if test data should be used
  */
 export function shouldUseTestData(): boolean {
-  // In development, never use test data unless explicitly forced
-  if (process.env.NODE_ENV === 'development' && process.env.FORCE_TEST_DATA !== 'true') {
+  // In development, always use real API - NEVER use test data
+  if (process.env.NODE_ENV === 'development') {
     console.log('In development mode, always using real API');
     return false;
   }
@@ -85,15 +85,14 @@ export function shouldUseTestData(): boolean {
   
   // If Flask URL isn't available, use test data
   const flaskUrl = getFlaskUrl();
-  const useTestData = !flaskUrl;
-  
-  if (useTestData) {
+  if (!flaskUrl) {
     console.log('Flask URL not available, using test data');
-  } else {
-    console.log('Flask URL available, using live API');
+    return true;
   }
   
-  return useTestData;
+  // Always log the decision
+  console.log('Flask URL available, using live API');
+  return false;
 }
 
 /**
