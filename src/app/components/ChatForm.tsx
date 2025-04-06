@@ -46,8 +46,9 @@ export default function ChatForm() {
       // Add timestamp for cache busting
       const timestamp = new Date().getTime();
       
-      // Use the force-generate endpoint to bypass all environment checks
-      const response = await fetch(`/api/force-generate?t=${timestamp}`, {
+      // Connect directly to the Flask server on port 5338
+      console.log('Connecting directly to Flask API...');
+      const response = await fetch(`http://localhost:5338/api/generate-lesson`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,8 +61,7 @@ export default function ChatForm() {
           grade: 'All',
           topic: input,
           _timestamp: timestamp // Include in body as well
-        }),
-        cache: 'no-store'
+        })
       });
       
       if (!response.ok) {
@@ -72,9 +72,9 @@ export default function ChatForm() {
       console.log('Response data:', data);
       
       // Check if this is a test response
-      const responseText = data.response || data.lesson_plan || 'No response received';
+      const responseText = data.lesson_plan || data.response || 'No response received';
       if (responseText.includes('This is a test response generated when the Flask API is not available')) {
-        console.error('Received test data response even with force-generate endpoint');
+        console.error('Received test data response');
         throw new Error('Still receiving test data. Flask API might be down.');
       }
       
@@ -89,7 +89,7 @@ export default function ChatForm() {
       console.error('Error:', error);
       const errorMessage: ChatMessage = { 
         role: 'assistant' as const, 
-        content: `Lo siento, ha ocurrido un error al procesar tu solicitud: ${error instanceof Error ? error.message : 'Error desconocido'}. Por favor, verifica que el servidor Flask esté funcionando correctamente.`
+        content: `Lo siento, ha ocurrido un error al procesar tu solicitud: ${error instanceof Error ? error.message : 'Error desconocido'}. Por favor, verifica que el servidor Flask esté funcionando correctamente en http://localhost:5338.`
       };
       setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
