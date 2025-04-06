@@ -66,6 +66,7 @@ export default function Home() {
   }, []); // Remove isFlaskRunning from dependency array
   
   const generateLessonPlan = async () => {
+    console.log('Generate lesson plan button clicked');
     setLoading(true);
     setError(null);
     setDebugInfo('Generating lesson plan...');
@@ -102,6 +103,7 @@ export default function Home() {
         console.log('Setting lesson plan from lesson_plan field');
         // Check if it's markdown content or already structured
         if (typeof data.lesson_plan === 'string') {
+          console.log('Lesson plan is string format, converting to object with isMarkdown=true');
           setLessonPlan({
             title: 'Lesson Plan: Fractions',
             subject: 'Matemática',
@@ -112,6 +114,7 @@ export default function Home() {
             isMarkdown: true
           });
         } else {
+          console.log('Lesson plan is already structured object');
           setLessonPlan(data.lesson_plan);
         }
       } else if (data.data) {
@@ -130,6 +133,7 @@ export default function Home() {
         });
       }
       
+      console.log('Final lesson plan state:', lessonPlan);
       setDebugInfo(`Lesson plan set successfully.`);
     } catch (err) {
       console.error('Error generating lesson plan:', err);
@@ -141,6 +145,7 @@ export default function Home() {
   };
   
   const generateActivities = async () => {
+    console.log('Generate activities button clicked');
     setLoading(true);
     setError(null);
     setDebugInfo('Generating activities...');
@@ -179,6 +184,38 @@ export default function Home() {
       } else if (data.data && Array.isArray(data.data)) {
         console.log('Using data field from response');
         activitiesData = data.data;
+      } else if (typeof data.activities === 'string') {
+        console.log('Activities is a string, creating activity object');
+        activitiesData = [{
+          id: 'generated-1',
+          title: 'Generated Activities',
+          grade: 'PRIMARIA',
+          duration: 45,
+          subject: 'Matemática',
+          content: {
+            description: data.activities,
+            objectives: 'See description',
+            materials: 'See description',
+            instructions: 'See description',
+            assessment: 'See description'
+          }
+        }];
+      } else if (typeof data.data === 'string') {
+        console.log('Data is a string, creating activity object');
+        activitiesData = [{
+          id: 'generated-1',
+          title: 'Generated Activities',
+          grade: 'PRIMARIA',
+          duration: 45,
+          subject: 'Matemática',
+          content: {
+            description: data.data,
+            objectives: 'See description',
+            materials: 'See description',
+            instructions: 'See description',
+            assessment: 'See description'
+          }
+        }];
       } else {
         console.log('Could not find expected activities array, creating placeholder');
         activitiesData = [{
@@ -199,6 +236,7 @@ export default function Home() {
       
       console.log('Setting activities:', activitiesData);
       setActivities(activitiesData);
+      console.log('Final activities state:', activities);
       setDebugInfo(`Activities set. Count: ${activitiesData.length}`);
     } catch (err) {
       console.error('Error generating activities:', err);
@@ -346,7 +384,11 @@ export default function Home() {
             marginBottom: '2rem'
           }}>
             <button 
-              onClick={generateLessonPlan}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Generate lesson plan button clicked directly');
+                generateLessonPlan();
+              }}
               style={{
                 padding: '1rem 2rem',
                 background: loading ? '#9ca3af' : '#6E3CD9',
@@ -365,7 +407,11 @@ export default function Home() {
             </button>
             
             <button 
-              onClick={generateActivities}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Generate activities button clicked directly');
+                generateActivities();
+              }}
               style={{
                 padding: '1rem 2rem',
                 background: loading ? '#9ca3af' : 'white',
