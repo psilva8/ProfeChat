@@ -43,6 +43,26 @@ export default function ChatForm() {
     setIsLoading(true);
     
     try {
+      // First test the connection to Flask
+      console.log('Testing direct connection to Flask...');
+      const testResponse = await fetch(`http://localhost:5338/api/health`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Accept': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+      
+      if (!testResponse.ok) {
+        throw new Error(`Flask health check failed: ${testResponse.status}`);
+      }
+      
+      const testData = await testResponse.json();
+      console.log('Flask health check successful:', testData);
+      
       // Add timestamp for cache busting
       const timestamp = new Date().getTime();
       
@@ -54,7 +74,9 @@ export default function ChatForm() {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
-          'Expires': '0'
+          'Expires': '0',
+          'Accept': 'application/json',
+          'Access-Control-Allow-Origin': '*'
         },
         body: JSON.stringify({
           subject: selectedSubject,
