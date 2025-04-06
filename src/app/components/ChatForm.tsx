@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -12,6 +12,7 @@ export default function ChatForm() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState('');
+  const [serverStatus, setServerStatus] = useState<'online'|'offline'|'checking'>('checking');
   
   const subjects = [
     'Matemáticas', 'Ciencias', 'Historia', 'Lenguaje', 'Arte', 'Música', 
@@ -24,6 +25,32 @@ export default function ChatForm() {
     '¿Qué actividades puedo hacer para trabajar la comprensión lectora?',
     '¿Cómo evaluar el aprendizaje en una clase de matemáticas?'
   ];
+
+  // Check Flask server status on component mount
+  useEffect(() => {
+    checkServerStatus();
+  }, []);
+
+  const checkServerStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:5338/api/health', {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (response.ok) {
+        console.log('Flask server is online');
+        setServerStatus('online');
+      } else {
+        setServerStatus('offline');
+      }
+    } catch (error) {
+      console.error('Error checking server status:', error);
+      setServerStatus('offline');
+    }
+  };
   
   const handleExampleClick = (question: string) => {
     setInput(question);
@@ -49,31 +76,54 @@ export default function ChatForm() {
       // Add timestamp for cache busting
       const timestamp = new Date().getTime();
       
-      const response = await fetch(`http://localhost:5338/api/generate-lesson`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        },
-        body: JSON.stringify({
-          subject: selectedSubject || 'General',
-          grade: 'All',
-          topic: input,
-          _timestamp: timestamp
-        })
-      });
+      // Try multiple URLs to improve reliability
+      const urls = [
+        'http://localhost:5338/api/generate-lesson',
+        'http://127.0.0.1:5338/api/generate-lesson'
+      ];
       
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+      let response = null;
+      let error = null;
+      
+      // Try each URL in order until one works
+      for (const url of urls) {
+        try {
+          console.log(`Trying ${url}...`);
+          response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            },
+            body: JSON.stringify({
+              subject: selectedSubject || 'General',
+              grade: 'All',
+              topic: input,
+              _timestamp: timestamp
+            })
+          });
+          
+          if (response.ok) {
+            console.log(`Success with ${url}`);
+            break;
+          }
+        } catch (e) {
+          console.log(`Failed with ${url}:`, e);
+          error = e;
+        }
+      }
+      
+      if (!response || !response.ok) {
+        throw error || new Error(`Error: ${response?.status || 'No response'}`);
       }
       
       const data = await response.json();
       console.log('Response data:', data);
       
-      // Check if this is a test response
-      const responseText = data.lesson_plan || 'No response received';
+      // Use the lesson_plan field from the Flask API response
+      const responseText = data.lesson_plan || data.activities || 'No response received';
       
       // Use the lesson_plan field from the Flask API response
       const assistantMessage: ChatMessage = { 
@@ -118,6 +168,40 @@ export default function ChatForm() {
             gap: '0.5rem'
           }}>
             <span style={{ color: '#6E3CD9' }}>AI</span> Teaching Assistant
+            <div style={{
+              marginLeft: 'auto',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <span>Flask API:</span>
+              <span style={{
+                display: 'inline-block',
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                backgroundColor: serverStatus === 'online' ? '#10b981' : 
+                                serverStatus === 'offline' ? '#ef4444' : '#f59e0b'
+              }}></span>
+              <span>{serverStatus === 'online' ? 'Online' : 
+                    serverStatus === 'offline' ? 'Offline' : 'Checking...'}</span>
+              <button 
+                onClick={checkServerStatus}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '0.8rem',
+                  color: '#6E3CD9',
+                  cursor: 'pointer',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  textDecoration: 'underline'
+                }}
+              >
+                Check
+              </button>
+            </div>
           </h2>
           
           {messages.length === 0 && (
@@ -303,18 +387,18 @@ export default function ChatForm() {
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || serverStatus === 'offline'}
               style={{
                 padding: '1.25rem 2rem',
-                background: isLoading || !input.trim() ? '#9ca3af' : '#6E3CD9',
+                background: isLoading || !input.trim() || serverStatus === 'offline' ? '#9ca3af' : '#6E3CD9',
                 color: 'white',
                 border: 'none',
                 borderRadius: '12px',
                 fontWeight: '600',
-                cursor: isLoading || !input.trim() ? 'default' : 'pointer',
+                cursor: isLoading || !input.trim() || serverStatus === 'offline' ? 'default' : 'pointer',
                 transition: 'all 0.2s ease',
                 fontSize: '1rem',
-                boxShadow: isLoading || !input.trim() ? 'none' : '0 4px 14px rgba(110, 60, 217, 0.3)'
+                boxShadow: isLoading || !input.trim() || serverStatus === 'offline' ? 'none' : '0 4px 14px rgba(110, 60, 217, 0.3)'
               }}
             >
               {isLoading ? 'Enviando...' : 'Enviar'}

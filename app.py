@@ -4,7 +4,8 @@ from flask_cors import CORS
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='static')
-CORS(app)  # Enable CORS for all routes
+# Set CORS with more explicit configuration to allow requests from Next.js
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://192.168.0.25:3002"]}})
 
 # Define routes
 @app.route('/')
@@ -35,140 +36,66 @@ def health():
 @app.route('/api/generate-lesson', methods=['POST'])
 def generate_lesson():
     """Generate a lesson plan"""
-    try:
-        data = request.json
-        subject = data.get('subject', 'General')
-        grade = data.get('grade', 'All Grades')
-        topic = data.get('topic', 'General Subject')
-        
-        print(f"Received generate-lesson request for {subject}, {grade}, {topic}")
-        
-        # Generate a simple lesson plan (this is where you would integrate with OpenAI or other service)
-        lesson_plan = f"""# Lesson Plan: {topic} for {grade} {subject}
-
-## Overview
-This is a sample lesson plan generated for teaching {topic} to {grade} students in {subject}.
-
-## Objectives
-- Students will understand the key concepts of {topic}
-- Students will be able to apply these concepts in practical exercises
-- Students will develop critical thinking skills related to {topic}
-
-## Materials
-- Textbooks
-- Worksheets
-- Interactive materials
-- Digital resources
-
-## Lesson Structure
-1. **Introduction (10 minutes)**
-   - Begin with an engaging activity to introduce {topic}
-   - Connect to students' prior knowledge
-
-2. **Main Lesson (25 minutes)**
-   - Present key concepts using visual aids
-   - Guide students through examples
-
-3. **Practice Activities (15 minutes)**
-   - Students work in pairs or small groups
-   - Teacher provides support and guidance
-
-4. **Assessment (5 minutes)**
-   - Quick check for understanding
-   - Exit ticket with key questions
-
-5. **Closure (5 minutes)**
-   - Summarize key learning points
-   - Preview next lesson
-
-## Assessment Methods
-- Formative assessment during practice activities
-- Exit ticket responses
-- Homework assignment
-
-## Differentiation
-- For advanced students: Additional challenging problems
-- For students needing support: Simplified examples and additional guidance"""
-
-        print("Successfully generated lesson plan, returning response")
-        return jsonify({
-            "lesson_plan": lesson_plan,
-            "success": True
-        })
-    except Exception as e:
-        print(f"Error generating lesson plan: {str(e)}")
-        return jsonify({
-            "lesson_plan": f"# Error generating lesson plan\n\nWe encountered an error: {str(e)}",
-            "success": False
-        }), 200  # Return 200 even on error to avoid browser issues
+    data = request.json
+    
+    print(f"Received generate-lesson request for {data.get('subject', 'None')}, {data.get('grade', 'None')}, {data.get('topic', 'None')}")
+    
+    # In a real app, this would call an LLM
+    # For now, return a sample response
+    response = {
+        "lesson_plan": f"# Lesson Plan: {data.get('topic', 'General Topic')} for {data.get('grade', 'All Grades')} {data.get('subject', 'General')}\n\n## Overview\nThis is a sample lesson plan generated for teaching {data.get('topic', 'General Topic')} to {data.get('grade', 'All')} students in {data.get('subject', 'General')}.\n\n## Objectives\n- Students will understand the key concepts of {data.get('topic', 'General Topic')}\n- Students will be able to apply these concepts in practical exercises\n- Students will develop critical thinking skills related to {data.get('topic', 'General Topic')}\n\n## Materials\n- Textbooks\n- Worksheets\n- Interactive materials\n- Digital resources\n\n## Lesson Structure\n1. **Introduction (10 minutes)**\n   - Begin with an engaging activity to introduce {data.get('topic', 'General Topic')}\n   - Connect to students' prior knowledge\n\n2. **Main Lesson (25 minutes)**\n   - Present key concepts using visual aids\n   - Guide students through examples\n\n3. **Practice Activities (15 minutes)**\n   - Students work in pairs or small groups\n   - Teacher provides support and guidance\n\n4. **Assessment (5 minutes)**\n   - Quick check for understanding\n   - Exit ticket with key questions\n\n5. **Closure (5 minutes)**\n   - Summarize key learning points\n   - Preview next lesson\n\n## Assessment Methods\n- Formative assessment during practice activities\n- Exit ticket responses\n- Homework assignment\n\n## Differentiation\n- For advanced students: Additional challenging problems\n- For students needing support: Simplified examples and additional guidance",
+        "success": True
+    }
+    
+    print("Successfully generated lesson plan, returning response")
+    return jsonify(response)
 
 @app.route('/api/generate-activities', methods=['POST'])
 def generate_activities():
-    """Generate activities"""
-    try:
-        data = request.json
-        subject = data.get('subject', 'General')
-        grade = data.get('grade', 'All Grades')
-        topic = data.get('topic', 'General Subject')
-        
-        print(f"Received generate-activities request for {subject}, {grade}, {topic}")
-        
-        # Generate activities (this is where you would integrate with OpenAI or other service)
-        activities = f"""Actividad 1: "Exploración de {topic}"
-1. Descripción de la actividad: Los estudiantes explorarán los conceptos clave de {topic}.
-2. Duración: 30 minutos.
-3. Materiales necesarios: Hojas de trabajo, materiales manipulativos.
-4. Instrucciones paso a paso:
-   - Paso 1: Introducir el concepto de {topic}.
-   - Paso 2: Demostrar ejemplos prácticos.
-   - Paso 3: Permitir que los estudiantes experimenten con los materiales.
-   - Paso 4: Discutir los hallazgos en grupos pequeños.
-5. Criterios de evaluación: Participación, comprensión conceptual.
-
-Actividad 2: "Aplicación práctica de {topic}"
-1. Descripción de la actividad: Los estudiantes aplicarán lo aprendido en situaciones del mundo real.
-2. Duración: 45 minutos.
-3. Materiales necesarios: Hojas de problemas, recursos digitales.
-4. Instrucciones paso a paso:
-   - Paso 1: Revisar los conceptos clave de {topic}.
-   - Paso 2: Presentar problemas del mundo real relacionados con {topic}.
-   - Paso 3: Los estudiantes trabajan en parejas para resolver los problemas.
-   - Paso 4: Compartir soluciones y estrategias.
-5. Criterios de evaluación: Precisión, razonamiento, colaboración.
-
-Actividad 3: "Proyecto creativo sobre {topic}"
-1. Descripción de la actividad: Los estudiantes crearán un proyecto para demostrar su comprensión.
-2. Duración: 60 minutos.
-3. Materiales necesarios: Materiales de arte, recursos tecnológicos.
-4. Instrucciones paso a paso:
-   - Paso 1: Lluvia de ideas sobre proyectos relacionados con {topic}.
-   - Paso 2: Planificar el proyecto (individual o en grupo).
-   - Paso 3: Crear el proyecto utilizando los materiales disponibles.
-   - Paso 4: Presentar y explicar el proyecto a la clase.
-5. Criterios de evaluación: Creatividad, comprensión del tema, presentación."""
-
-        print("Successfully generated activities, returning response")
-        return jsonify({
-            "success": True,
-            "data": activities,
-            "activities": activities,
-            "message": "Actividades generadas correctamente"
-        })
-    except Exception as e:
-        print(f"Error generating activities: {str(e)}")
-        return jsonify({
-            "success": False,
-            "data": f"Error: {str(e)}",
-            "activities": f"Error: {str(e)}",
-            "message": f"Error generating activities: {str(e)}"
-        }), 200  # Return 200 even on error to avoid browser issues
+    """Generate educational activities"""
+    data = request.json
+    
+    print(f"Received generate-activities request for {data.get('subject', 'None')}, {data.get('grade', 'None')}, {data.get('topic', 'None')}, {data.get('activityType', 'None')}")
+    
+    # In a real app, this would call an LLM
+    # For now, return a sample response
+    activity_type = data.get('activityType', 'general')
+    activities = f"# {activity_type.capitalize()} Activities for {data.get('topic', 'General Topic')}\n\n"
+    
+    if activity_type == 'individual':
+        activities += "## Individual Activities\n\n"
+        activities += "1. **Reflection Journal**: Students write their thoughts about the concepts learned.\n"
+        activities += "2. **Practice Problems**: Provide a worksheet with problems of increasing difficulty.\n"
+        activities += "3. **Research Task**: Students research a specific aspect of the topic and present findings.\n"
+    elif activity_type == 'group':
+        activities += "## Group Activities\n\n"
+        activities += "1. **Collaborative Project**: Students work in teams to create a project demonstrating their understanding.\n"
+        activities += "2. **Peer Teaching**: Students teach each other different aspects of the topic.\n"
+        activities += "3. **Discussion Circles**: Guided discussions on key concepts and applications.\n"
+    elif activity_type == 'interactive':
+        activities += "## Interactive Activities\n\n"
+        activities += "1. **Digital Simulations**: Use online tools to visualize concepts.\n"
+        activities += "2. **Educational Games**: Gamify learning with competitive activities related to the topic.\n"
+        activities += "3. **Hands-on Experiments**: Practical activities to demonstrate theoretical concepts.\n"
+    elif activity_type == 'assessment':
+        activities += "## Assessment Activities\n\n"
+        activities += "1. **Formative Quizzes**: Short quizzes to check understanding throughout the lesson.\n"
+        activities += "2. **Project-based Assessment**: Students create a final project demonstrating mastery.\n"
+        activities += "3. **Peer Evaluation**: Students review and provide feedback on each other's work.\n"
+    else:
+        activities += "## General Activities\n\n"
+        activities += "1. **Mixed Activity Type 1**: Description of first activity.\n"
+        activities += "2. **Mixed Activity Type 2**: Description of second activity.\n"
+        activities += "3. **Mixed Activity Type 3**: Description of third activity.\n"
+    
+    response = {
+        "activities": activities,
+        "success": True
+    }
+    
+    print("Successfully generated activities, returning response")
+    return jsonify(response)
 
 if __name__ == '__main__':
-    # Write the port to .flask-port file for reference
-    port = int(os.environ.get('PORT', 5338))
-    print(f"Starting Flask server on port {port}")
-    with open('.flask-port', 'w') as f:
-        f.write(str(port))
-    
-    # Start the Flask app
-    app.run(host='0.0.0.0', port=port, debug=True) 
+    print(f"Starting Flask server on port {os.environ.get('PORT', 5338)}")
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5338)), debug=True) 
