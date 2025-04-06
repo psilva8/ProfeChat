@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProfeChat - Asistente para Profesores</title>
+    <style>
+        :root {
+            --primary-color: #6E3CD9;
+            --primary-hover: #5a2db6;
+            --light-gray: #f9fafb;
+            --border-color: #e5e7eb;
+            --text-dark: #333;
+            --text-light: #4b5563;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            background-color: var(--light-gray);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        nav {
+            display: flex;
+            gap: 20px;
+        }
+        
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        
+        nav a:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+        
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        .button-secondary {
+            background-color: white;
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+        }
+        
+        .button-secondary:hover {
+            background-color: var(--light-gray);
+        }
+        
+        .chat-messages {
+            margin-top: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 85%;
+        }
+        
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+        
+        .assistant-message {
+            background-color: #f0f0f0;
+            color: var(--text-dark);
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .subject-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .subject-button {
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .subject-button.selected {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .example-card {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .example-card:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .server-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background-color: #10b981;
+        }
+        
+        .status-offline {
+            background-color: #ef4444;
+        }
+        
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+        
+        .tab-container {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>ProfeChat</h1>
+            <nav>
+                <a href="#" class="active">Inicio</a>
+                <a href="#">Planes de lección</a>
+                <a href="#">Actividades</a>
+                <a href="#">Recursos</a>
+                <a href="#">Acerca de</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="server-status">
+            <div id="status-indicator" class="status-indicator"></div>
+            <span id="status-text">Comprobando estado del servidor...</span>
+        </div>
+        
+        <div class="grid">
+            <div>
+                <div class="card">
+                    <h2>Consulta a tu Asistente</h2>
+                    
+                    <div class="tab-container">
+                        <div class="tab active" data-tab="chat">Chat</div>
+                        <div class="tab" data-tab="lesson">Plan de lección</div>
+                        <div class="tab" data-tab="activity">Actividades</div>
+                    </div>
+                    
+                    <div id="chat-tab" class="tab-content active">
+                        <div class="subject-buttons">
+                            <button class="subject-button" data-subject="Matemáticas">Matemáticas</button>
+                            <button class="subject-button" data-subject="Ciencias">Ciencias</button>
+                            <button class="subject-button" data-subject="Historia">Historia</button>
+                            <button class="subject-button" data-subject="Lenguaje">Lenguaje</button>
+                            <button class="subject-button" data-subject="Arte">Arte</button>
+                        </div>
+                        
+                        <div class="examples">
+                            <div class="example-card" data-query="¿Cómo puedo enseñar multiplicaciones a niños de tercero básico?">
+                                ¿Cómo puedo enseñar multiplicaciones a niños de tercero básico?
+                            </div>
+                            <div class="example-card" data-query="¿Puedes darme ideas para una clase sobre el sistema solar?">
+                                ¿Puedes darme ideas para una clase sobre el sistema solar?
+                            </div>
+                        </div>
+                        
+                        <form id="chat-form">
+                            <div class="form-group">
+                                <label for="prompt">Tu pregunta:</label>
+                                <textarea id="prompt" rows="4" required></textarea>
+                            </div>
+                            
+                            <input type="hidden" id="selected-subject" value="">
+                            
+                            <button type="submit">Enviar consulta</button>
+                        </form>
+                    </div>
+                    
+                    <div id="lesson-tab" class="tab-content">
+                        <form id="lesson-form">
+                            <div class="form-group">
+                                <label for="lesson-subject">Asignatura:</label>
+                                <input type="text" id="lesson-subject" required placeholder="Ej: Matemáticas">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="lesson-grade">Nivel/Grado:</label>
+                                <input type="text" id="lesson-grade" required placeholder="Ej: Primaria 5">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="lesson-topic">Tema:</label>
+                                <input type="text" id="lesson-topic" required placeholder="Ej: Fracciones">
+                            </div>
+                            
+                            <button type="submit">Generar plan de lección</button>
+                        </form>
+                    </div>
+                    
+                    <div id="activity-tab" class="tab-content">
+                        <form id="activity-form">
+                            <div class="form-group">
+                                <label for="activity-subject">Asignatura:</label>
+                                <input type="text" id="activity-subject" required placeholder="Ej: Ciencias">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="activity-grade">Nivel/Grado:</label>
+                                <input type="text" id="activity-grade" required placeholder="Ej: Secundaria 2">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="activity-topic">Tema:</label>
+                                <input type="text" id="activity-topic" required placeholder="Ej: Sistema Solar">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="activity-type">Tipo de actividad:</label>
+                                <select id="activity-type">
+                                    <option value="individual">Individual</option>
+                                    <option value="group">Grupal</option>
+                                    <option value="interactive">Interactiva</option>
+                                    <option value="assessment">Evaluación</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit">Generar actividades</button>
+                        </form>
+                    </div>
+                    
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Generando respuesta...</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Estado del servidor</h3>
+                    <button id="check-server">Comprobar conexión</button>
+                    <pre id="server-details" style="display: none;"></pre>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Respuestas del Asistente</h2>
+                <div id="chat-messages" class="chat-messages"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            const chatForm = document.getElementById('chat-form');
+            const lessonForm = document.getElementById('lesson-form');
+            const activityForm = document.getElementById('activity-form');
+            const promptInput = document.getElementById('prompt');
+            const subjectInput = document.getElementById('selected-subject');
+            const chatMessages = document.getElementById('chat-messages');
+            const loading = document.querySelector('.loading');
+            const subjectButtons = document.querySelectorAll('.subject-button');
+            const exampleCards = document.querySelectorAll('.example-card');
+            const checkServerButton = document.getElementById('check-server');
+            const serverDetails = document.getElementById('server-details');
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            // API URL base
+            const API_BASE = 'http://localhost:5338/api';
+            
+            // Check server status on load
+            checkServerStatus();
+            
+            // Tab switching
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show active content
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(`${tabName}-tab`).classList.add('active');
+                });
+            });
+            
+            // Subject selection
+            subjectButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    subjectButtons.forEach(btn => btn.classList.remove('selected'));
+                    this.classList.add('selected');
+                    subjectInput.value = this.getAttribute('data-subject');
+                });
+            });
+            
+            // Example questions
+            exampleCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    promptInput.value = this.getAttribute('data-query');
+                });
+            });
+            
+            // Chat form submission
+            chatForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const prompt = promptInput.value.trim();
+                const subject = subjectInput.value;
+                
+                if (!prompt) return;
+                
+                // Add user message
+                addMessage('user', prompt);
+                
+                // Clear input and show loading
+                promptInput.value = '';
+                loading.style.display = 'block';
+                
+                try {
+                    const response = await generateResponse(prompt, subject);
+                    addMessage('assistant', response);
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('assistant', `Error: ${error.message}`);
+                } finally {
+                    loading.style.display = 'none';
+                }
+            });
+            
+            // Lesson plan form submission
+            lessonForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const subject = document.getElementById('lesson-subject').value.trim();
+                const grade = document.getElementById('lesson-grade').value.trim();
+                const topic = document.getElementById('lesson-topic').value.trim();
+                
+                if (!subject || !grade || !topic) return;
+                
+                // Add user message summarizing the request
+                addMessage('user', `Por favor genera un plan de lección para ${topic} en ${subject} para ${grade}.`);
+                
+                // Show loading
+                loading.style.display = 'block';
+                
+                try {
+                    const response = await generateLessonPlan(subject, grade, topic);
+                    addMessage('assistant', response);
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('assistant', `Error: ${error.message}`);
+                } finally {
+                    loading.style.display = 'none';
+                }
+            });
+            
+            // Activities form submission
+            activityForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const subject = document.getElementById('activity-subject').value.trim();
+                const grade = document.getElementById('activity-grade').value.trim();
+                const topic = document.getElementById('activity-topic').value.trim();
+                const type = document.getElementById('activity-type').value;
+                
+                if (!subject || !grade || !topic) return;
+                
+                // Add user message summarizing the request
+                addMessage('user', `Por favor genera actividades de tipo ${type} para ${topic} en ${subject} para ${grade}.`);
+                
+                // Show loading
+                loading.style.display = 'block';
+                
+                try {
+                    const response = await generateActivities(subject, grade, topic, type);
+                    addMessage('assistant', response);
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('assistant', `Error: ${error.message}`);
+                } finally {
+                    loading.style.display = 'none';
+                }
+            });
+            
+            // Check server button
+            checkServerButton.addEventListener('click', async function() {
+                serverDetails.style.display = 'block';
+                serverDetails.textContent = 'Comprobando estado del servidor...';
+                
+                try {
+                    const response = await fetch(`${API_BASE}/health`, {
+                        method: 'GET',
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    serverDetails.textContent = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    serverDetails.textContent = `Error: ${error.message}\n\nPor favor, asegúrate de que el servidor Flask esté funcionando en el puerto 5338.`;
+                }
+            });
+            
+            // API Functions
+            async function checkServerStatus() {
+                try {
+                    const response = await fetch(`${API_BASE}/health`, {
+                        method: 'GET',
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        statusIndicator.classList.add('status-online');
+                        statusText.textContent = 'Servidor conectado';
+                        return true;
+                    } else {
+                        throw new Error(`Error: ${response.status}`);
+                    }
+                } catch (error) {
+                    statusIndicator.classList.add('status-offline');
+                    statusText.textContent = 'Servidor desconectado';
+                    console.error('Server status check failed:', error);
+                    return false;
+                }
+            }
+            
+            async function generateResponse(prompt, subject) {
+                const timestamp = new Date().getTime();
+                
+                console.log(`Generating response for: "${prompt}" (Subject: ${subject || 'None'})`);
+                
+                const response = await fetch(`${API_BASE}/generate-lesson`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        subject: subject || 'General',
+                        grade: 'All',
+                        topic: prompt,
+                        _timestamp: timestamp
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                const responseText = data.lesson_plan || data.response || 'No response received';
+                
+                if (responseText.includes('This is a test response generated when the Flask API is not available')) {
+                    throw new Error('Se recibió una respuesta de prueba. Es posible que la API de Flask no esté disponible.');
+                }
+                
+                return responseText;
+            }
+            
+            async function generateLessonPlan(subject, grade, topic) {
+                const timestamp = new Date().getTime();
+                
+                console.log(`Generating lesson plan for: ${subject}, ${grade}, ${topic}`);
+                
+                const response = await fetch(`${API_BASE}/generate-lesson`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        subject,
+                        grade,
+                        topic,
+                        _timestamp: timestamp
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Lesson plan data:', data);
+                
+                return data.lesson_plan || 'No se pudo generar el plan de lección.';
+            }
+            
+            async function generateActivities(subject, grade, topic, type) {
+                const timestamp = new Date().getTime();
+                
+                console.log(`Generating activities for: ${subject}, ${grade}, ${topic}, ${type}`);
+                
+                const response = await fetch(`${API_BASE}/generate-activities`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        subject,
+                        grade,
+                        topic,
+                        activityType: type,
+                        _timestamp: timestamp
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Activities data:', data);
+                
+                return data.activities || data.data || 'No se pudieron generar actividades.';
+            }
+            
+            function addMessage(role, content) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(role === 'user' ? 'user-message' : 'assistant-message');
+                
+                // Format the content with proper line breaks
+                messageDiv.innerHTML = content.replace(/\n/g, '<br>');
+                
+                chatMessages.appendChild(messageDiv);
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html> 
