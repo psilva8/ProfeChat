@@ -3,299 +3,321 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProfeChat - Lesson Plan Generator</title>
+    <title>ProfeChat - Asistente para Profesores</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 1200px;
+            margin: 0;
+            padding: 0;
+            background-color: #f9fafb;
+        }
+        .container {
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f8f9fa;
         }
         header {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: #6E3CD9;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
             margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border-radius: 0 0 15px 15px;
         }
         h1 {
             margin: 0;
-            color: #333;
+            font-size: 2rem;
         }
-        h1 span {
-            color: #6E3CD9;
-        }
-        nav {
-            display: flex;
-            gap: 20px;
-        }
-        nav a {
-            color: #555;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        nav a:hover {
-            color: #6E3CD9;
-        }
-        .hero {
-            text-align: center;
-            padding: 40px 0;
-            margin-bottom: 40px;
-        }
-        .hero h2 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            color: #333;
-        }
-        .hero p {
-            font-size: 1.2rem;
-            color: #666;
-            max-width: 800px;
-            margin: 0 auto 30px;
-        }
-        .buttons {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        .button {
-            background-color: #6E3CD9;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .button:hover {
-            background-color: #5c31b6;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(110, 60, 217, 0.2);
-        }
-        .button.outline {
-            background-color: transparent;
-            color: #6E3CD9;
-            border: 2px solid #6E3CD9;
-        }
-        .button.outline:hover {
-            background-color: #f0ebff;
-        }
-        .form-section {
+        .card {
             background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
         }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
+            margin-bottom: 5px;
+            font-weight: 600;
         }
         input, select, textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 5px;
             font-size: 1rem;
         }
-        .result {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-top: 30px;
-            white-space: pre-wrap;
-            display: none;
+        button {
+            background-color: #6E3CD9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
-        .loader {
+        button:hover {
+            background-color: #5a2db6;
+        }
+        .chat-messages {
+            margin-top: 30px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .user-message {
+            background-color: #6E3CD9;
+            color: white;
+            margin-left: 20%;
+            border-radius: 10px 10px 0 10px;
+        }
+        .assistant-message {
+            background-color: #f0f0f0;
+            color: #333;
+            margin-right: 20%;
+            border-radius: 10px 10px 10px 0;
+        }
+        #loading {
             display: none;
             text-align: center;
             margin: 20px 0;
         }
-        .loader div {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            background-color: #6E3CD9;
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
             border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out both;
-            margin: 0 5px;
+            border-top: 4px solid #6E3CD9;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
         }
-        .loader div:nth-child(1) { animation-delay: -0.32s; }
-        .loader div:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1.0); }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        .error {
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
+        .subject-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .subject-button {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .subject-button.selected {
+            background-color: #6E3CD9;
+            color: white;
+            border-color: #6E3CD9;
+        }
+        .examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .example-card {
+            background-color: #f0f0f0;
             padding: 15px;
             border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .tab {
-            padding: 10px 20px;
             cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
+            transition: background-color 0.3s;
         }
-        .tab.active {
-            border-bottom: 2px solid #6E3CD9;
-            color: #6E3CD9;
-            font-weight: 600;
+        .example-card:hover {
+            background-color: #e0e0e0;
         }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
     <header>
-        <h1><span>Profe</span>Chat</h1>
-        <nav>
-            <a href="#" style="color: #6E3CD9; font-weight: 600;">Inicio</a>
-            <a href="#">Herramientas</a>
-            <a href="#">Recursos</a>
-            <a href="#">Acerca de</a>
-        </nav>
+        <div class="container">
+            <h1>ProfeChat - Asistente para Profesores</h1>
+        </div>
     </header>
 
-    <div class="hero">
-        <h2>El poder de la <span style="color: #6E3CD9;">IA</span> para ayudar a los <span style="color: #6E3CD9;">educadores</span></h2>
-        <p>Crea planes de lecciones y actividades en segundos, ahorrando horas de preparación y enfocándote más en tus estudiantes.</p>
-    </div>
-
-    <div class="buttons">
-        <button id="lessonPlanBtn" class="button">Generar Plan de Lección</button>
-        <button id="activitiesBtn" class="button outline">Generar Actividades</button>
-    </div>
-
-    <div id="errorMessage" class="error">
-        <strong>Error:</strong> <span id="errorText"></span>
-    </div>
-
-    <div id="lessonPlanForm" class="form-section">
-        <h2>Generar Plan de Lección</h2>
-        <form id="generateLessonForm">
-            <div class="form-group">
-                <label for="subject">Asignatura</label>
-                <select id="subject" name="subject" required>
-                    <option value="Matemática">Matemática</option>
-                    <option value="Comunicación">Comunicación</option>
-                    <option value="Ciencia">Ciencia</option>
-                    <option value="Historia">Historia</option>
-                </select>
+    <div class="container">
+        <div class="card">
+            <h2>Consulta a tu Asistente</h2>
+            
+            <div class="subject-buttons">
+                <button class="subject-button" data-subject="Matemáticas">Matemáticas</button>
+                <button class="subject-button" data-subject="Ciencias">Ciencias</button>
+                <button class="subject-button" data-subject="Historia">Historia</button>
+                <button class="subject-button" data-subject="Lenguaje">Lenguaje</button>
+                <button class="subject-button" data-subject="Arte">Arte</button>
+                <button class="subject-button" data-subject="Música">Música</button>
+                <button class="subject-button" data-subject="Educación Física">Educación Física</button>
+                <button class="subject-button" data-subject="Inglés">Inglés</button>
             </div>
-            <div class="form-group">
-                <label for="grade">Grado</label>
-                <select id="grade" name="grade" required>
-                    <option value="PRIMARIA">Primaria</option>
-                    <option value="SECUNDARIA">Secundaria</option>
-                </select>
+            
+            <div class="examples">
+                <div class="example-card" data-query="¿Cómo puedo enseñar multiplicaciones a niños de tercero básico?">
+                    ¿Cómo puedo enseñar multiplicaciones a niños de tercero básico?
+                </div>
+                <div class="example-card" data-query="¿Puedes darme ideas para una clase sobre el sistema solar?">
+                    ¿Puedes darme ideas para una clase sobre el sistema solar?
+                </div>
+                <div class="example-card" data-query="¿Qué actividades puedo hacer para trabajar la comprensión lectora?">
+                    ¿Qué actividades puedo hacer para trabajar la comprensión lectora?
+                </div>
+                <div class="example-card" data-query="¿Cómo evaluar el aprendizaje en una clase de matemáticas?">
+                    ¿Cómo evaluar el aprendizaje en una clase de matemáticas?
+                </div>
             </div>
-            <div class="form-group">
-                <label for="topic">Tema</label>
-                <input type="text" id="topic" name="topic" required placeholder="Ej: Fracciones, Redacción de cuentos, etc.">
+            
+            <form id="chat-form">
+                <div class="form-group">
+                    <label for="prompt">Tu pregunta:</label>
+                    <textarea id="prompt" rows="4" required></textarea>
+                </div>
+                
+                <input type="hidden" id="selected-subject" value="">
+                
+                <button type="submit">Enviar</button>
+            </form>
+            
+            <div id="loading">
+                <div class="spinner"></div>
+                <p>Generando respuesta...</p>
             </div>
-            <button type="submit" class="button">Generar Plan de Lección</button>
-        </form>
+        </div>
         
-        <div id="loader" class="loader">
-            <div></div>
-            <div></div>
-            <div></div>
+        <div id="chat-messages" class="chat-messages"></div>
+        
+        <div id="api-status" class="card" style="margin-top: 30px;">
+            <h3>Estado de la API</h3>
+            <pre id="status-output">Checking API status...</pre>
+            <button id="check-api">Verificar estado</button>
         </div>
-    </div>
-
-    <div id="result" class="result">
-        <div class="tabs">
-            <div id="lessonPlanTab" class="tab active">Plan de Lección</div>
-            <div id="activitiesTab" class="tab">Actividades</div>
-        </div>
-        <div id="lessonPlanContent" class="tab-content active"></div>
-        <div id="activitiesContent" class="tab-content"></div>
     </div>
 
     <script>
-        // Elements
-        const lessonPlanBtn = document.getElementById('lessonPlanBtn');
-        const activitiesBtn = document.getElementById('activitiesBtn');
-        const lessonPlanForm = document.getElementById('lessonPlanForm');
-        const generateLessonForm = document.getElementById('generateLessonForm');
-        const loader = document.getElementById('loader');
-        const result = document.getElementById('result');
-        const lessonPlanContent = document.getElementById('lessonPlanContent');
-        const activitiesContent = document.getElementById('activitiesContent');
-        const errorMessage = document.getElementById('errorMessage');
-        const errorText = document.getElementById('errorText');
-        const lessonPlanTab = document.getElementById('lessonPlanTab');
-        const activitiesTab = document.getElementById('activitiesTab');
-
-        // Initially hide the form until a button is clicked
-        lessonPlanForm.style.display = 'none';
-
-        // Functions
-        function showError(message) {
-            errorText.textContent = message;
-            errorMessage.style.display = 'block';
-            setTimeout(() => {
-                errorMessage.style.display = 'none';
-            }, 5000);
-        }
-
-        function showLoader() {
-            loader.style.display = 'block';
-        }
-
-        function hideLoader() {
-            loader.style.display = 'none';
-        }
-
-        async function generateLessonPlan(event) {
-            if (event) event.preventDefault();
-            showLoader();
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('chat-form');
+            const promptInput = document.getElementById('prompt');
+            const subjectInput = document.getElementById('selected-subject');
+            const chatMessages = document.getElementById('chat-messages');
+            const loading = document.getElementById('loading');
+            const subjectButtons = document.querySelectorAll('.subject-button');
+            const exampleCards = document.querySelectorAll('.example-card');
+            const checkApiButton = document.getElementById('check-api');
+            const statusOutput = document.getElementById('status-output');
             
-            try {
-                const subject = document.getElementById('subject').value;
-                const grade = document.getElementById('grade').value;
-                const topic = document.getElementById('topic').value;
+            // Check API status on load
+            checkApiStatus();
+            
+            // Subject selection
+            subjectButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    subjectButtons.forEach(btn => btn.classList.remove('selected'));
+                    this.classList.add('selected');
+                    subjectInput.value = this.dataset.subject;
+                });
+            });
+            
+            // Example questions
+            exampleCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    promptInput.value = this.dataset.query;
+                });
+            });
+            
+            // Form submission
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
                 
-                if (!topic) {
-                    throw new Error('Please enter a topic');
+                const prompt = promptInput.value.trim();
+                const subject = subjectInput.value;
+                
+                if (!prompt) return;
+                
+                // Add user message
+                addMessage('user', prompt);
+                
+                // Clear input and show loading
+                promptInput.value = '';
+                loading.style.display = 'block';
+                
+                try {
+                    // First test the connection
+                    await testApiConnection();
+                    
+                    // Generate response
+                    const response = await generateResponse(prompt, subject);
+                    addMessage('assistant', response);
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('assistant', `Error: ${error.message}`);
+                } finally {
+                    loading.style.display = 'none';
                 }
+            });
+            
+            // Check API button
+            checkApiButton.addEventListener('click', checkApiStatus);
+            
+            async function testApiConnection() {
+                try {
+                    console.log('Testing API connection...');
+                    const response = await fetch('http://localhost:5338/api/health', {
+                        method: 'GET',
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`API health check failed with status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('API health check successful:', data);
+                    return true;
+                } catch (error) {
+                    console.error('API connection test failed:', error);
+                    throw new Error('Could not connect to API. Please make sure the Flask server is running on port 5338.');
+                }
+            }
+            
+            async function generateResponse(prompt, subject) {
+                const timestamp = new Date().getTime();
                 
-                console.log(`Generating lesson plan for: ${subject}, ${grade}, ${topic}`);
+                console.log(`Generating response for: "${prompt}" (Subject: ${subject || 'None'})`);
                 
-                const response = await fetch('/api/generate-lesson', {
+                const response = await fetch('http://localhost:5338/api/generate-lesson', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache',
+                        'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ subject, grade, topic })
+                    body: JSON.stringify({
+                        subject: subject || 'General',
+                        grade: 'All',
+                        topic: prompt,
+                        _timestamp: timestamp
+                    })
                 });
                 
                 if (!response.ok) {
@@ -303,153 +325,48 @@
                 }
                 
                 const data = await response.json();
+                console.log('Response data:', data);
                 
-                if (!data.success) {
-                    throw new Error(data.message || 'Error generating lesson plan');
+                const responseText = data.lesson_plan || data.response || 'No response received';
+                
+                if (responseText.includes('This is a test response generated when the Flask API is not available')) {
+                    throw new Error('Received test response. Flask API might be unavailable.');
                 }
                 
-                // Display result
-                lessonPlanContent.innerHTML = formatMarkdown(data.lesson_plan);
-                result.style.display = 'block';
-                
-                // Make the lesson plan tab active
-                lessonPlanTab.classList.add('active');
-                activitiesTab.classList.remove('active');
-                lessonPlanContent.classList.add('active');
-                activitiesContent.classList.remove('active');
-                
-                console.log('Lesson plan generated successfully');
-            } catch (error) {
-                console.error('Error:', error);
-                showError(error.message || 'An error occurred');
-            } finally {
-                hideLoader();
+                return responseText;
             }
-        }
-
-        async function generateActivities() {
-            showLoader();
             
-            try {
-                const subject = document.getElementById('subject').value;
-                const grade = document.getElementById('grade').value;
-                const topic = document.getElementById('topic').value;
+            async function checkApiStatus() {
+                statusOutput.textContent = 'Checking API status...';
                 
-                if (!topic) {
-                    throw new Error('Please enter a topic');
+                try {
+                    const response = await fetch('http://localhost:5338/api/health', {
+                        headers: {
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    statusOutput.textContent = `API Status: ${JSON.stringify(data, null, 2)}`;
+                } catch (error) {
+                    statusOutput.textContent = `API Error: ${error.message}\n\nPlease make sure the Flask server is running on port 5338.`;
                 }
-                
-                console.log(`Generating activities for: ${subject}, ${grade}, ${topic}`);
-                
-                const response = await fetch('/api/generate-activities', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ subject, grade, topic })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (!data.success) {
-                    throw new Error(data.message || 'Error generating activities');
-                }
-                
-                // Display result
-                const activitiesData = data.activities || data.data;
-                activitiesContent.innerHTML = formatText(activitiesData);
-                result.style.display = 'block';
-                
-                // Make the activities tab active
-                lessonPlanTab.classList.remove('active');
-                activitiesTab.classList.add('active');
-                lessonPlanContent.classList.remove('active');
-                activitiesContent.classList.add('active');
-                
-                console.log('Activities generated successfully');
-            } catch (error) {
-                console.error('Error:', error);
-                showError(error.message || 'An error occurred');
-            } finally {
-                hideLoader();
             }
-        }
-
-        function formatMarkdown(markdown) {
-            if (!markdown) return '';
             
-            // Basic markdown formatting
-            return markdown
-                // Headers
-                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-                // Bold
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                // Italic
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                // Lists
-                .replace(/^\s*-\s*(.*)$/gm, '<li>$1</li>')
-                // Paragraphs
-                .replace(/^(?!<[hl]|<li)(.+)$/gm, '<p>$1</p>')
-                // Wrap lists
-                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-        }
-
-        function formatText(text) {
-            if (!text) return '';
-            
-            // Basic text formatting
-            return '<pre>' + text + '</pre>';
-        }
-
-        // Event Listeners - Add console logs to debug
-        generateLessonForm.addEventListener('submit', (e) => {
-            console.log('Form submitted');
-            generateLessonPlan(e);
-        });
-        
-        lessonPlanBtn.addEventListener('click', () => {
-            console.log('Lesson plan button clicked');
-            lessonPlanForm.style.display = 'block';
-        });
-        
-        activitiesBtn.addEventListener('click', () => {
-            console.log('Activities button clicked');
-            if (document.getElementById('topic').value) {
-                generateActivities();
-            } else {
-                lessonPlanForm.style.display = 'block';
-                showError('Please fill in the topic field first');
+            function addMessage(role, content) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(role === 'user' ? 'user-message' : 'assistant-message');
+                
+                // Format the content with proper line breaks
+                messageDiv.innerHTML = content.replace(/\n/g, '<br>');
+                
+                chatMessages.appendChild(messageDiv);
+                
+                // Scroll to bottom
+                window.scrollTo(0, document.body.scrollHeight);
             }
         });
-        
-        lessonPlanTab.addEventListener('click', () => {
-            console.log('Lesson plan tab clicked');
-            lessonPlanTab.classList.add('active');
-            activitiesTab.classList.remove('active');
-            lessonPlanContent.classList.add('active');
-            activitiesContent.classList.remove('active');
-        });
-        
-        activitiesTab.addEventListener('click', () => {
-            console.log('Activities tab clicked');
-            lessonPlanTab.classList.remove('active');
-            activitiesTab.classList.add('active');
-            lessonPlanContent.classList.remove('active');
-            activitiesContent.classList.add('active');
-        });
-
-        // Add this code to see if it logs anything when the page loads
-        console.log('Script loaded, elements found:');
-        console.log('- lessonPlanBtn:', lessonPlanBtn ? 'yes' : 'no');
-        console.log('- activitiesBtn:', activitiesBtn ? 'yes' : 'no');
-        console.log('- lessonPlanForm:', lessonPlanForm ? 'yes' : 'no');
-        console.log('- generateLessonForm:', generateLessonForm ? 'yes' : 'no');
     </script>
 </body>
 </html> 
