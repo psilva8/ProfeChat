@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function ActivityPlanner() {
+function ActivityPlannerContent() {
   const searchParams = useSearchParams();
   
   const [subject, setSubject] = useState(searchParams.get('subject') || '');
@@ -338,5 +338,26 @@ export default function ActivityPlanner() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function ActivityPlannerLoading() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8 text-center">Activity Planner</h1>
+      <div className="text-center py-12">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mb-4"></div>
+        <p className="text-lg">Loading activity planner...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function ActivityPlanner() {
+  return (
+    <Suspense fallback={<ActivityPlannerLoading />}>
+      <ActivityPlannerContent />
+    </Suspense>
   );
 } 
