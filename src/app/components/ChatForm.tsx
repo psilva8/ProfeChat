@@ -33,92 +33,57 @@ export default function ChatForm() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
     
-    // Save the input to check later
-    const currentInput = input;
-    
+    // Add user message
     const userMessage: ChatMessage = { 
-      role: 'user', 
+      role: 'user' as const, 
       content: input 
     };
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prevMessages => [...prevMessages, userMessage]);
     setInput('');
     setIsLoading(true);
     
     try {
-      console.log(`Sending chat request: ${currentInput}`);
-      console.log(`Selected subject: ${selectedSubject || 'none'}`);
-      
-      // Add a cache-busting parameter to prevent cached responses
-      const timestamp = new Date().getTime();
-      
-      // Use our new force-generate endpoint that bypasses all checks
-      const response = await fetch(`/api/force-generate?_=${timestamp}`, {
+      // Use the correct endpoint that works with your Flask backend
+      const response = await fetch('/api/generate-lesson', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
         },
-        body: JSON.stringify({ 
-          message: currentInput,
-          subject: selectedSubject 
+        body: JSON.stringify({
+          subject: selectedSubject,
+          grade: 'All',
+          topic: input
         }),
         cache: 'no-store'
       });
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error from force-generate API (${response.status}):`, errorText);
-        throw new Error(`Error ${response.status}: ${errorText}`);
+        throw new Error(`Error: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('Received response (raw):', JSON.stringify(data).substring(0, 200) + '...');
       
-      if (!data.response) {
-        console.error('Response missing response field:', data);
-        throw new Error('Invalid response format from server');
-      }
-      
-      // Check if the response contains the test message
-      const isTestMessage = data.response.includes('modo prueba') || 
-                           data.response.includes('test mode') ||
-                           data.response.includes('mensaje de prueba');
-                           
-      console.log(`Is this a test message? ${isTestMessage ? 'Yes' : 'No'}`);
-      
-      if (isTestMessage) {
-        console.error('WARNING: Received a test message response when we should be getting a real one');
-        console.error(`Response starts with: ${data.response.substring(0, 100)}...`);
-        
-        throw new Error('Received test message when expecting real response');
-      }
-      
+      // Use the correct field from the response
       const assistantMessage: ChatMessage = { 
-        role: 'assistant', 
-        content: data.response
+        role: 'assistant' as const, 
+        content: data.lesson_plan || data.response || 'No response received'
       };
       
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prevMessages => [...prevMessages, assistantMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error:', error);
       const errorMessage: ChatMessage = { 
-        role: 'assistant', 
-        content: 'Lo siento, ocurrió un error al procesar tu mensaje. Por favor, intenta recargar la página e intentar de nuevo.' 
+        role: 'assistant' as const, 
+        content: 'Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo.'
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
   
   return (
-    <div className="chat-container" style={{
-      maxWidth: '1000px',
-      margin: '0 auto',
-      padding: '2rem 0',
-    }}>
+    <div className="w-full max-w-4xl mx-auto">
       <div style={{
         background: 'white',
         borderRadius: '16px',
@@ -381,6 +346,44 @@ export default function ChatForm() {
         
         .chat-messages::-webkit-scrollbar-thumb:hover {
           background-color: #d1d5db;
+        }
+        
+        .chat-message pre {
+          background-color: #1e1e1e;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          overflow-x: auto;
+          margin: 1rem 0;
+        }
+        .chat-message code {
+          color: #f8f8f2;
+          font-family: 'Courier New', Courier, monospace;
+        }
+        .chat-message ul, .chat-message ol {
+          padding-left: 1.5rem;
+          margin: 1rem 0;
+        }
+        .chat-message ul {
+          list-style-type: disc;
+        }
+        .chat-message ol {
+          list-style-type: decimal;
+        }
+        .chat-message h1, .chat-message h2, .chat-message h3 {
+          font-weight: bold;
+          margin: 1rem 0 0.5rem 0;
+        }
+        .chat-message h1 {
+          font-size: 1.5rem;
+        }
+        .chat-message h2 {
+          font-size: 1.25rem;
+        }
+        .chat-message h3 {
+          font-size: 1.1rem;
+        }
+        .chat-message p {
+          margin-bottom: 0.75rem;
         }
       `}</style>
     </div>
