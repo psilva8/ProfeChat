@@ -1,14 +1,21 @@
 from flask import Flask, request, jsonify, send_from_directory
 import os
+from flask_cors import CORS
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='static')
+CORS(app)  # Enable CORS for all routes
 
 # Define routes
 @app.route('/')
 def index():
     """Serve the main HTML page"""
     return send_from_directory('static', 'index.html')
+
+@app.route('/test')
+def test():
+    """Serve the test HTML page"""
+    return send_from_directory('static', 'test.html')
 
 @app.route('/api/health')
 def health():
@@ -28,6 +35,8 @@ def generate_lesson():
         subject = data.get('subject', 'General')
         grade = data.get('grade', 'All Grades')
         topic = data.get('topic', 'General Subject')
+        
+        print(f"Received generate-lesson request for {subject}, {grade}, {topic}")
         
         # Generate a simple lesson plan (this is where you would integrate with OpenAI or other service)
         lesson_plan = f"""# Lesson Plan: {topic} for {grade} {subject}
@@ -76,11 +85,13 @@ This is a sample lesson plan generated for teaching {topic} to {grade} students 
 - For advanced students: Additional challenging problems
 - For students needing support: Simplified examples and additional guidance"""
 
+        print("Successfully generated lesson plan, returning response")
         return jsonify({
             "lesson_plan": lesson_plan,
             "success": True
         })
     except Exception as e:
+        print(f"Error generating lesson plan: {str(e)}")
         return jsonify({
             "lesson_plan": f"# Error generating lesson plan\n\nWe encountered an error: {str(e)}",
             "success": False
@@ -94,6 +105,8 @@ def generate_activities():
         subject = data.get('subject', 'General')
         grade = data.get('grade', 'All Grades')
         topic = data.get('topic', 'General Subject')
+        
+        print(f"Received generate-activities request for {subject}, {grade}, {topic}")
         
         # Generate activities (this is where you would integrate with OpenAI or other service)
         activities = f"""Actividad 1: "Exploración de {topic}"
@@ -129,6 +142,7 @@ Actividad 3: "Proyecto creativo sobre {topic}"
    - Paso 4: Presentar y explicar el proyecto a la clase.
 5. Criterios de evaluación: Creatividad, comprensión del tema, presentación."""
 
+        print("Successfully generated activities, returning response")
         return jsonify({
             "success": True,
             "data": activities,
@@ -136,6 +150,7 @@ Actividad 3: "Proyecto creativo sobre {topic}"
             "message": "Actividades generadas correctamente"
         })
     except Exception as e:
+        print(f"Error generating activities: {str(e)}")
         return jsonify({
             "success": False,
             "data": f"Error: {str(e)}",
@@ -146,6 +161,7 @@ Actividad 3: "Proyecto creativo sobre {topic}"
 if __name__ == '__main__':
     # Write the port to .flask-port file for reference
     port = int(os.environ.get('PORT', 5338))
+    print(f"Starting Flask server on port {port}")
     with open('.flask-port', 'w') as f:
         f.write(str(port))
     
