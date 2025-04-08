@@ -75,11 +75,35 @@
             margin-top: 20px;
             display: none;
         }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ccc;
+        }
+        .online {
+            background-color: #4caf50;
+        }
+        .offline {
+            background-color: #f44336;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Planificador de Clases - Perú</h1>
+        
+        <div class="status-indicator">
+            <div id="status-dot" class="status-dot"></div>
+            <span id="status-text">Verificando conexión...</span>
+        </div>
         
         <div class="form-group">
             <label for="grade">Grado:</label>
@@ -132,7 +156,7 @@
     </div>
 
     <script>
-        // Static content embedded directly in the file
+        // For fallback to static content
         const staticContent = {
             "titles": {
                 "matematica": {
@@ -262,6 +286,37 @@
             }
         };
 
+        // API endpoints
+        const API_URL = 'http://localhost:3000/servidor/planificador';
+        const HEALTH_URL = 'http://localhost:3000/servidor/estado';
+
+        // Check server status on page load
+        window.onload = function() {
+            checkServerStatus();
+        };
+
+        // Function to check server status
+        function checkServerStatus() {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            
+            fetch(HEALTH_URL)
+                .then(response => {
+                    if (response.ok) {
+                        statusDot.classList.add('online');
+                        statusText.textContent = 'Servidor conectado';
+                        return response.json();
+                    } else {
+                        throw new Error('El servidor responde, pero hay un error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al verificar el estado del servidor:', error);
+                    statusDot.classList.add('offline');
+                    statusText.textContent = 'Usando datos locales (servidor desconectado)';
+                });
+        }
+
         function generateLesson() {
             const grade = document.getElementById('grade').value;
             const subject = document.getElementById('subject').value;
@@ -283,28 +338,68 @@
             loading.style.display = 'block';
             generateButton.disabled = true;
 
-            try {
-                const title = staticContent.titles[subject][grade];
-                const objective = staticContent.objectives[subject][grade];
-                const activity = staticContent.activities[resources][subject];
-                
-                const fallbackHtml = `
-                    <p><strong>Título:</strong> ${title}</p>
-                    <p><strong>Objetivo:</strong> ${objective}</p>
-                    <p><strong>Actividad:</strong> ${activity}</p>
-                `;
-                
-                document.getElementById('lessonContent').innerHTML = fallbackHtml;
+            // Try to use the API
+            fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    grade,
+                    subject,
+                    resources
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Display the AI-generated lesson plan
+                document.getElementById('lessonContent').innerHTML = formatLessonPlan(data.lesson_plan);
                 document.getElementById('lessonPlan').style.display = 'block';
-            } catch (e) {
-                // Error generating lesson
-                errorMessage.textContent = 'No se pudo generar el plan de clase. Por favor intente de nuevo más tarde.';
-                errorMessage.style.display = 'block';
-            } finally {
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Use fallback to static content
+                try {
+                    const title = staticContent.titles[subject][grade];
+                    const objective = staticContent.objectives[subject][grade];
+                    const activity = staticContent.activities[resources][subject];
+                    
+                    const fallbackHtml = `
+                        <p><strong>Título:</strong> ${title}</p>
+                        <p><strong>Objetivo:</strong> ${objective}</p>
+                        <p><strong>Actividad:</strong> ${activity}</p>
+                        <p><em>(Plan generado desde contenido local)</em></p>
+                    `;
+                    
+                    document.getElementById('lessonContent').innerHTML = fallbackHtml;
+                    document.getElementById('lessonPlan').style.display = 'block';
+                } catch (e) {
+                    // Error generating lesson
+                    errorMessage.textContent = 'No se pudo generar el plan de clase. Por favor intente de nuevo más tarde.';
+                    errorMessage.style.display = 'block';
+                }
+            })
+            .finally(() => {
                 // Hide loading and re-enable button
                 loading.style.display = 'none';
                 generateButton.disabled = false;
-            }
+            });
+        }
+
+        function formatLessonPlan(text) {
+            // Format the text with line breaks and styling
+            return text
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')  // Handle markdown bold
+                .replace(/Título:/g, '<strong>Título:</strong>')
+                .replace(/Objetivo:/g, '<strong>Objetivo:</strong>')
+                .replace(/Actividad:/g, '<strong>Actividad:</strong>');
         }
     </script>
 </body>
