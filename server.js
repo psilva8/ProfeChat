@@ -25,8 +25,42 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '.')));
 
-// API Endpoint to generate lesson plans
-app.post('/api/generate-lesson', async (req, res) => {
+// API Endpoint to generate lesson plans - both old and new paths for compatibility
+app.post('/api/generate-lesson', generateLessonPlan);
+app.post('/servidor/planificador', generateLessonPlan);
+
+// Health check endpoints - both old and new paths for compatibility
+app.get('/api/health', healthCheck);
+app.get('/servidor/estado', healthCheck);
+
+// Serve the JSON file explicitly
+app.get('/lesson-content.json', (req, res) => {
+  res.sendFile(path.join(__dirname, 'lesson-content.json'));
+});
+
+// Serve the HTML file
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'peru-teacher.html'));
+});
+
+// Serve the app directly
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, 'peru-teacher.html'));
+});
+
+// For local development - not used in production
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Open your browser at http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel serverless deployment
+module.exports = app;
+
+// Lesson plan generation function
+async function generateLessonPlan(req, res) {
   try {
     const { grade, subject, resources } = req.body;
     
@@ -88,39 +122,13 @@ app.post('/api/generate-lesson', async (req, res) => {
       error: error.response?.data?.error?.message || error.message
     });
   }
-});
+}
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Health check function
+function healthCheck(req, res) {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
-});
-
-// Serve the HTML file
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'peru-teacher.html'));
-});
-
-// Serve the app directly
-app.get('/app', (req, res) => {
-  res.sendFile(path.join(__dirname, 'peru-teacher.html'));
-});
-
-// Serve the JSON file explicitly
-app.get('/lesson-content.json', (req, res) => {
-  res.sendFile(path.join(__dirname, 'lesson-content.json'));
-});
-
-// For local development - not used in production
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Open your browser at http://localhost:${PORT}`);
-  });
-}
-
-// Export for Vercel serverless deployment
-module.exports = app; 
+} 

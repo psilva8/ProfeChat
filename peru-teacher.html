@@ -160,8 +160,9 @@
         let staticContent = null;
         
         // Set the correct API URL - updated to use port 3000 for the Node.js server
-        const API_URL = 'http://localhost:3000/api/generate-lesson';
-        const HEALTH_URL = 'http://localhost:3000/api/health';
+        // Renamed endpoints to avoid ad blockers
+        const API_URL = 'http://localhost:3000/servidor/planificador';
+        const HEALTH_URL = 'http://localhost:3000/servidor/estado';
         
         // Check server status on load
         window.onload = function() {
