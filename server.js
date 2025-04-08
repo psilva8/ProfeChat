@@ -28,10 +28,12 @@ app.use(express.static(path.join(__dirname, '.')));
 // API Endpoint to generate lesson plans - both old and new paths for compatibility
 app.post('/api/generate-lesson', generateLessonPlan);
 app.post('/servidor/planificador', generateLessonPlan);
+app.post('/api/lesson-plan', generateLessonPlan);
 
 // Health check endpoints - both old and new paths for compatibility
 app.get('/api/health', healthCheck);
 app.get('/servidor/estado', healthCheck);
+app.get('/api/health-check', healthCheck);
 
 // Serve the JSON file explicitly
 app.get('/lesson-content.json', (req, res) => {

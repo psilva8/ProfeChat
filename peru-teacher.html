@@ -286,9 +286,9 @@
             }
         };
 
-        // API endpoints
-        const API_URL = 'http://localhost:3000/servidor/planificador';
-        const HEALTH_URL = 'http://localhost:3000/servidor/estado';
+        // API endpoints - using non-blocked terms and full URLs
+        const API_URL = window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : '') + '/api/lesson-plan';
+        const HEALTH_URL = window.location.protocol + '//' + window.location.hostname + (window.location.port ? ':' + window.location.port : '') + '/api/health-check';
 
         // Check server status on page load
         window.onload = function() {
