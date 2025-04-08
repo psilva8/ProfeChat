@@ -17,7 +17,11 @@ const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all origins for development
+  methods: ['GET', 'POST'], // Allow these HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'] // Allow these headers
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '.')));
 
@@ -103,6 +107,11 @@ app.get('/', (req, res) => {
 // Serve the app directly
 app.get('/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'peru-teacher.html'));
+});
+
+// Serve the JSON file explicitly
+app.get('/lesson-content.json', (req, res) => {
+  res.sendFile(path.join(__dirname, 'lesson-content.json'));
 });
 
 // For local development - not used in production

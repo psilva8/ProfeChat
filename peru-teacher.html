@@ -75,11 +75,35 @@
             margin-top: 20px;
             display: none;
         }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ccc;
+        }
+        .online {
+            background-color: #4caf50;
+        }
+        .offline {
+            background-color: #f44336;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Planificador de Clases - Perú</h1>
+        
+        <div class="status-indicator">
+            <div id="status-dot" class="status-dot"></div>
+            <span id="status-text">Verificando conexión...</span>
+        </div>
         
         <div class="form-group">
             <label for="grade">Grado:</label>
@@ -135,15 +159,50 @@
         // For fallback to static content if server is not available
         let staticContent = null;
         
-        // Try to load static content as fallback
-        fetch('lesson-content.json')
-            .then(response => response.json())
-            .then(data => {
-                staticContent = data;
-            })
-            .catch(error => {
-                console.error('Note: Static content unavailable, will use API only:', error);
-            });
+        // Set the correct API URL - updated to use port 3000 for the Node.js server
+        const API_URL = 'http://localhost:3000/api/generate-lesson';
+        const HEALTH_URL = 'http://localhost:3000/api/health';
+        
+        // Check server status on load
+        window.onload = function() {
+            checkServerStatus();
+            
+            // Try to load static content as fallback
+            fetch('lesson-content.json')
+                .then(response => response.json())
+                .then(data => {
+                    staticContent = data;
+                    console.log("Static content loaded successfully (for fallback)");
+                })
+                .catch(error => {
+                    console.error('Note: Static content unavailable, will use API only:', error);
+                });
+        };
+        
+        // Function to check server status
+        function checkServerStatus() {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            
+            fetch(HEALTH_URL)
+                .then(response => {
+                    if (response.ok) {
+                        statusDot.classList.add('online');
+                        statusText.textContent = 'Servidor conectado';
+                        return response.json();
+                    } else {
+                        throw new Error('El servidor responde, pero hay un error');
+                    }
+                })
+                .then(data => {
+                    console.log('Server health:', data);
+                })
+                .catch(error => {
+                    statusDot.classList.add('offline');
+                    statusText.textContent = 'Servidor desconectado';
+                    console.error('Error al verificar el estado del servidor:', error);
+                });
+        }
 
         function generateLesson() {
             const grade = document.getElementById('grade').value;
@@ -166,8 +225,8 @@
             loading.style.display = 'block';
             generateButton.disabled = true;
 
-            // Try server API first
-            fetch('/api/generate-lesson', {
+            // Try server API
+            fetch(API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -230,6 +289,7 @@
             // Format the text with line breaks and styling
             return text
                 .replace(/\n/g, '<br>')
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')  // Handle markdown bold
                 .replace(/Título:/g, '<strong>Título:</strong>')
                 .replace(/Objetivo:/g, '<strong>Objetivo:</strong>')
                 .replace(/Actividad:/g, '<strong>Actividad:</strong>');
