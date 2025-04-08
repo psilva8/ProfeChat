@@ -47,6 +47,10 @@
         button:hover {
             background-color: #0d47a1;
         }
+        button:disabled {
+            background-color: #9e9e9e;
+            cursor: not-allowed;
+        }
         .lesson-plan {
             margin-top: 20px;
             padding: 20px;
@@ -60,6 +64,15 @@
         }
         .loading {
             text-align: center;
+            display: none;
+            margin-top: 20px;
+        }
+        .error-message {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
             display: none;
         }
     </style>
@@ -104,61 +117,122 @@
             </select>
         </div>
 
-        <button onclick="generateLesson()">Generar Plan de Clase</button>
+        <button id="generateButton" onclick="generateLesson()">Generar Plan de Clase</button>
 
         <div class="loading" id="loading">
-            Cargando contenido...
+            <p>Generando plan de clase...</p>
         </div>
+
+        <div class="error-message" id="errorMessage"></div>
 
         <div id="lessonPlan" class="lesson-plan">
             <h2>Plan de Clase</h2>
-            <p><strong>Título:</strong> <span id="lessonTitle"></span></p>
-            <p><strong>Objetivo:</strong> <span id="lessonObjective"></span></p>
-            <p><strong>Actividad:</strong> <span id="lessonActivity"></span></p>
+            <div id="lessonContent"></div>
         </div>
     </div>
 
     <script>
-        let lessonContent = null;
-
-        // Load the JSON content when the page loads
-        window.onload = function() {
-            document.getElementById('loading').style.display = 'block';
-            fetch('lesson-content.json')
-                .then(response => response.json())
-                .then(data => {
-                    lessonContent = data;
-                    document.getElementById('loading').style.display = 'none';
-                })
-                .catch(error => {
-                    console.error('Error loading lesson content:', error);
-                    document.getElementById('loading').style.display = 'none';
-                    alert('Error al cargar el contenido. Por favor, recargue la página.');
-                });
-        };
+        // For fallback to static content if server is not available
+        let staticContent = null;
+        
+        // Try to load static content as fallback
+        fetch('lesson-content.json')
+            .then(response => response.json())
+            .then(data => {
+                staticContent = data;
+            })
+            .catch(error => {
+                console.error('Note: Static content unavailable, will use API only:', error);
+            });
 
         function generateLesson() {
             const grade = document.getElementById('grade').value;
             const subject = document.getElementById('subject').value;
             const resources = document.getElementById('resources').value;
+            const generateButton = document.getElementById('generateButton');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
 
             if (!grade || !subject || !resources) {
                 alert('Por favor, complete todos los campos');
                 return;
             }
 
-            if (!lessonContent) {
-                alert('El contenido aún no está cargado. Por favor, espere un momento.');
-                return;
-            }
+            // Clear previous errors and results
+            errorMessage.style.display = 'none';
+            document.getElementById('lessonPlan').style.display = 'none';
+            
+            // Show loading and disable button
+            loading.style.display = 'block';
+            generateButton.disabled = true;
 
-            // Mostrar el plan de clase
-            document.getElementById('lessonPlan').style.display = 'block';
+            // Try server API first
+            fetch('/api/generate-lesson', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    grade,
+                    subject,
+                    resources
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Display the AI-generated lesson plan
+                document.getElementById('lessonContent').innerHTML = formatLessonPlan(data.lesson_plan);
+                document.getElementById('lessonPlan').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Try fallback to static content if available
+                if (staticContent) {
+                    try {
+                        const title = staticContent.titles[subject][grade];
+                        const objective = staticContent.objectives[subject][grade];
+                        const activity = staticContent.activities[resources][subject];
+                        
+                        const fallbackHtml = `
+                            <p><strong>Título:</strong> ${title}</p>
+                            <p><strong>Objetivo:</strong> ${objective}</p>
+                            <p><strong>Actividad:</strong> ${activity}</p>
+                            <p class="note"><em>(Plan generado desde contenido local)</em></p>
+                        `;
+                        
+                        document.getElementById('lessonContent').innerHTML = fallbackHtml;
+                        document.getElementById('lessonPlan').style.display = 'block';
+                    } catch (e) {
+                        // Even fallback failed
+                        errorMessage.textContent = 'No se pudo generar el plan de clase. Por favor intente de nuevo más tarde.';
+                        errorMessage.style.display = 'block';
+                    }
+                } else {
+                    // No fallback available
+                    errorMessage.textContent = 'No se pudo conectar al servidor. Por favor intente de nuevo más tarde.';
+                    errorMessage.style.display = 'block';
+                }
+            })
+            .finally(() => {
+                // Hide loading and re-enable button
+                loading.style.display = 'none';
+                generateButton.disabled = false;
+            });
+        }
 
-            // Usar el contenido del JSON
-            document.getElementById('lessonTitle').textContent = lessonContent.titles[subject][grade];
-            document.getElementById('lessonObjective').textContent = lessonContent.objectives[subject][grade];
-            document.getElementById('lessonActivity').textContent = lessonContent.activities[resources][subject];
+        function formatLessonPlan(text) {
+            // Format the text with line breaks and styling
+            return text
+                .replace(/\n/g, '<br>')
+                .replace(/Título:/g, '<strong>Título:</strong>')
+                .replace(/Objetivo:/g, '<strong>Objetivo:</strong>')
+                .replace(/Actividad:/g, '<strong>Actividad:</strong>');
         }
     </script>
 </body>
