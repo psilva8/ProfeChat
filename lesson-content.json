@@ -1,0 +1,128 @@
+{
+    "titles": {
+        "matematica": {
+            "1": "Números del 1 al 20",
+            "2": "Sumas y Restas Básicas",
+            "3": "Multiplicación",
+            "4": "Fracciones",
+            "5": "Decimales",
+            "6": "Álgebra Básica"
+        },
+        "comunicacion": {
+            "1": "Lectura de Palabras",
+            "2": "Oraciones Simples",
+            "3": "Comprensión Lectora",
+            "4": "Redacción de Párrafos",
+            "5": "Textos Narrativos",
+            "6": "Textos Expositivos"
+        },
+        "ciencia": {
+            "1": "Los Seres Vivos",
+            "2": "El Cuerpo Humano",
+            "3": "Los Ecosistemas",
+            "4": "La Materia",
+            "5": "La Energía",
+            "6": "El Universo"
+        },
+        "historia": {
+            "1": "Mi Familia y Yo",
+            "2": "Mi Comunidad",
+            "3": "El Perú Antiguo",
+            "4": "La Conquista",
+            "5": "La Independencia",
+            "6": "El Perú Moderno"
+        },
+        "geografia": {
+            "1": "Mi Entorno",
+            "2": "El Mapa de mi Comunidad",
+            "3": "Las Regiones del Perú",
+            "4": "Los Continentes",
+            "5": "Los Océanos",
+            "6": "El Clima Mundial"
+        },
+        "economia": {
+            "1": "El Dinero",
+            "2": "El Ahorro",
+            "3": "Los Bienes y Servicios",
+            "4": "El Comercio",
+            "5": "La Producción",
+            "6": "La Economía Global"
+        }
+    },
+    "objectives": {
+        "matematica": {
+            "1": "Reconocer y escribir números del 1 al 20",
+            "2": "Realizar sumas y restas con números hasta 100",
+            "3": "Multiplicar números de una cifra",
+            "4": "Identificar y representar fracciones básicas",
+            "5": "Trabajar con números decimales hasta centésimos",
+            "6": "Resolver ecuaciones simples con una incógnita"
+        },
+        "comunicacion": {
+            "1": "Leer y escribir palabras de uso frecuente",
+            "2": "Formar oraciones simples con sujeto y predicado",
+            "3": "Comprender textos cortos y responder preguntas",
+            "4": "Escribir párrafos coherentes",
+            "5": "Crear historias cortas con inicio, desarrollo y final",
+            "6": "Elaborar textos informativos con estructura adecuada"
+        },
+        "ciencia": {
+            "1": "Identificar características de seres vivos",
+            "2": "Reconocer partes del cuerpo humano",
+            "3": "Describir componentes de un ecosistema",
+            "4": "Diferenciar estados de la materia",
+            "5": "Explicar formas de energía",
+            "6": "Describir componentes del sistema solar"
+        },
+        "historia": {
+            "1": "Identificar miembros de la familia",
+            "2": "Describir características de la comunidad",
+            "3": "Reconocer culturas preincaicas",
+            "4": "Explicar el proceso de conquista",
+            "5": "Describir el proceso de independencia",
+            "6": "Analizar hechos históricos recientes"
+        },
+        "geografia": {
+            "1": "Describir elementos del entorno",
+            "2": "Interpretar mapas simples",
+            "3": "Ubicar regiones del Perú",
+            "4": "Identificar continentes",
+            "5": "Localizar océanos",
+            "6": "Explicar factores climáticos"
+        },
+        "economia": {
+            "1": "Reconocer monedas y billetes",
+            "2": "Explicar la importancia del ahorro",
+            "3": "Diferenciar bienes y servicios",
+            "4": "Describir el proceso de compra-venta",
+            "5": "Explicar el proceso productivo",
+            "6": "Analizar la globalización"
+        }
+    },
+    "activities": {
+        "pizarra": {
+            "matematica": "Resolver ejercicios en la pizarra con participación de los estudiantes",
+            "comunicacion": "Escribir ejemplos y realizar ejercicios de escritura",
+            "ciencia": "Dibujar diagramas y explicar conceptos",
+            "historia": "Crear líneas de tiempo y mapas conceptuales",
+            "geografia": "Dibujar mapas y ubicar elementos geográficos",
+            "economia": "Realizar ejercicios prácticos de economía"
+        },
+        "papel": {
+            "matematica": "Resolver ejercicios en hojas de trabajo",
+            "comunicacion": "Realizar ejercicios de escritura y comprensión",
+            "ciencia": "Completar diagramas y responder preguntas",
+            "historia": "Elaborar líneas de tiempo y mapas conceptuales",
+            "geografia": "Completar mapas y ejercicios de ubicación",
+            "economia": "Resolver casos prácticos de economía"
+        },
+        "ninguno": {
+            "matematica": "Realizar ejercicios mentales y juegos numéricos",
+            "comunicacion": "Narrar historias y realizar ejercicios orales",
+            "ciencia": "Realizar observaciones y discusiones grupales",
+            "historia": "Narrar historias y realizar debates",
+            "geografia": "Describir lugares y realizar ejercicios de memoria",
+            "economia": "Realizar juegos de roles y debates"
+        }
+    }
+} 
