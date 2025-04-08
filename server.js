@@ -2,7 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
-require('dotenv').config();
+
+// Load environment variables (in local development)
+try {
+  require('dotenv').config();
+} catch (error) {
+  console.log('No .env file found, using environment variables');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -80,13 +86,32 @@ app.post('/api/generate-lesson', async (req, res) => {
   }
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
 // Serve the HTML file
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'peru-teacher.html'));
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Open your browser at http://localhost:${PORT}`);
-}); 
+// Serve the app directly
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, 'peru-teacher.html'));
+});
+
+// For local development - not used in production
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Open your browser at http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel serverless deployment
+module.exports = app; 
